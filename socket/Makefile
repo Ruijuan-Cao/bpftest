@@ -5,7 +5,7 @@ BINARY := socket
 KERN_OBJ := socket_kern.o
 
 # Libbpf dependencies
-LIBBPF = /usr/lib64/libbpf.a
+LIBBPF = ../libbpf.a
 
 # kernel build path
 kbuilddir ?= /lib/modules/$(shell uname -r)/build/
