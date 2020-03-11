@@ -3,6 +3,7 @@
 #include <linux/bpf.h>
 #include <bpf/bpf.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <bpf/libbpf.h>
 
 int main(int argc, char const *argv[])
@@ -16,7 +17,7 @@ int main(int argc, char const *argv[])
 	snprintf(filename, sizeof(filename), "%s_kern.o", argv[0]);
 
 	if (bpf_prog_load(filename, BPF_PROG_TYPE_SOCKET_FILTER, &obj, &prog_fd)){
-		printf("%s\n", bpf_log_buf);
+		printf("%s\n", filename);
 		return 1;
 	}
 
