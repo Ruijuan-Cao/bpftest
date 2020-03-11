@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <assert.h>
+#include <linux/bpf.h>
+#include <bpf/bpf.h>
+#include <unistd.h>
+#include <bpf/libbpf.h>
 
 int main(int argc, char const *argv[])
 {
