@@ -6,6 +6,11 @@
 #include <arpa/inet.h>
 #include <bpf/libbpf.h>
 
+#include <errno.h>
+#include <linux/if_ether.h>
+#include <net/if.h>
+#include <linux/if_packet.h>
+
 static inline int open_raw_sock(const char *name)
 {
 	struct sockaddr_ll sll;
