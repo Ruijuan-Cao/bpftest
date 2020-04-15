@@ -57,7 +57,7 @@ LLC ?= llc
 CLANG ?= clang
 
 # make
-all: $(BINARY) $(KERN_OBJ)
+all: $(KERN_OBJ) $(BINARY)
 
 clean:
 	rm -rf *.o *.ll $(BINARY)

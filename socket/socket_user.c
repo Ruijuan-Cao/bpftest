@@ -11,6 +11,8 @@
 #include <net/if.h>
 #include <linux/if_packet.h>
 
+#include <string.h>
+
 static inline int open_raw_sock(const char *name)
 {
 	struct sockaddr_ll sll;
