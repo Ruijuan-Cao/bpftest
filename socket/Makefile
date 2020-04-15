@@ -34,9 +34,17 @@ HOSTCFLAGS += -Wno-tautological-compare
 HOSTCFLAGS += -Wno-unknown-warning-option
 HOSTCFLAGS += -Wno-address-of-packed-member
 
+CFLAGS := -O2 -Wall -Werror
+CFLAGS += -I$(KERNEL)usr/include
+CFLAGS += -I$(KERNEL)tools/include
+CFLAGS += -I$(KERNEL)tools/lib
+CFLAGS += -I$(KERNEL)tools/perf/include
+CFLAGS += -L$(KERNEL)tools/lib/bpf
+CFLAGS += -L$(shell pwd)/lib
+
 NOSTDINC_FLAGS := -nostdinc -isystem $(shell gcc -print-file-name=include)
 
-TPROGS_LDLIBS += $(LIBBPF) -lelf
+TPROGS_LDLIBS += $(LIBBPF) -lelf -lpthread
 
 # Allows pointing LLC/CLANG to a LLVM backend with bpf support, redefine on cmdline:
 #  make M=samples/bpf/ LLC=~/git/llvm/build/bin/llc CLANG=~/git/llvm/build/bin/clang
