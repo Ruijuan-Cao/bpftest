@@ -21,6 +21,7 @@ LINUXINCLUDE += -I$(KERNEL)include/uapi
 LINUXINCLUDE += -I$(KERNEL)include/generated/uapi
 LINUXINCLUDE += -include $(KERNEL)include/linux/kconfig.h
 LINUXINCLUDE += -I$(KERNEL)tools/lib
+LINUXINCLUDE += -I/usr/include/bpf/
 
 HOSTCFLAGS := -O2 -Wall #-H
 HOSTCFLAGS += -D__KERNEL__ -D__ASM_SYSREG_H -D__BPF_TRACING__
