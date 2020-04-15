@@ -326,7 +326,6 @@ static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem,
 						    bool rx, bool tx)
 {
-	printf("--------------start socket---------\n");
 	struct xsk_socket_config cfg;
 	struct xsk_socket_info *xsk;
 	struct xsk_ring_cons *rxr;
@@ -334,6 +333,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem,
 	int ret;
 
 	xsk = calloc(1, sizeof(*xsk));
+	
 	if (!xsk)
 		exit_with_error(errno);
 
@@ -349,14 +349,17 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem,
 
 	rxr = rx ? &xsk->rx : NULL;
 	txr = tx ? &xsk->tx : NULL;
-	printf("---------create------------\n");
+
 	ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem,
 				 rxr, txr, &cfg);
-	printf("-----socket------%d\n", ret);
+
+	printf("----1ret=%d--\n", ret);	
 	if (ret)
 		exit_with_error(-ret);
 
 	ret = bpf_get_link_xdp_id(opt_ifindex, &prog_id, opt_xdp_flags);
+	
+	printf("----2ret=%d--\n", ret);	
 	if (ret)
 		exit_with_error(-ret);
 
@@ -512,17 +515,22 @@ static inline void complete_tx_l2fwd(struct xsk_socket_info *xsk,
 	unsigned int rcvd;
 	size_t ndescs;
 
+	printf("-----1-----\n");
 	if (!xsk->outstanding_tx)
 		return;
-
+	
+printf("-----2-----\n");
 	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
 		kick_tx(xsk);
-
+	
+	printf("-----3-----\n");
 	ndescs = (xsk->outstanding_tx > BATCH_SIZE) ? BATCH_SIZE :
 		xsk->outstanding_tx;
 
+printf("-----4-----\n");	
 	/* re-add completed Tx buffers */
 	rcvd = xsk_ring_cons__peek(&umem->cq, ndescs, &idx_cq);
+	printf("-----%d-----\n", rcvd);
 	if (rcvd > 0) {
 		unsigned int i;
 		int ret;
@@ -545,6 +553,7 @@ static inline void complete_tx_l2fwd(struct xsk_socket_info *xsk,
 		xsk->outstanding_tx -= rcvd;
 		xsk->tx_npkts += rcvd;
 	}
+printf("-----666-----\n");
 }
 
 static inline void complete_tx_only(struct xsk_socket_info *xsk)
@@ -681,9 +690,9 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	unsigned int rcvd, i;
 	u32 idx_rx = 0, idx_tx = 0;
 	int ret;
-
-	complete_tx_l2fwd(xsk, fds);
-
+	
+	//complete_tx_l2fwd(xsk, fds);
+	
 	rcvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	if (!rcvd) {
 		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
@@ -736,10 +745,11 @@ static void l2fwd_all(void)
 	for (;;) {
 		if (opt_poll) {
 			ret = poll(fds, num_socks, opt_timeout);
+			
 			if (ret <= 0)
 				continue;
 		}
-
+		
 		for (i = 0; i < num_socks; i++)
 			l2fwd(xsks[i], fds);
 	}
