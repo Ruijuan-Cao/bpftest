@@ -42,6 +42,11 @@ CFLAGS += -I$(KERNEL)tools/perf/include
 CFLAGS += -L$(KERNEL)tools/lib/bpf
 CFLAGS += -L$(shell pwd)/lib
 
+ifdef SYSROOT
+CFLAGS += --sysroot=$(SYSROOT)
+TPROGS_LDFLAGS := -L$(SYSROOT)/usr/lib
+endif
+
 NOSTDINC_FLAGS := -nostdinc -isystem $(shell gcc -print-file-name=include)
 
 TPROGS_LDLIBS += $(LIBBPF) -lelf -lpthread
