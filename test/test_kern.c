@@ -24,10 +24,10 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
-	__u32 *pkt_count;
+	int *pkt_count;
 	__u32 key = XDP_PASS;
 	pkt_count = bpf_map_lookup_elem(&bpf_pass_map, &key);
-	if (pkt_count)
+	if (!pkt_count)
 	{
 		return XDP_ABORTED;
 	}
