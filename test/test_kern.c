@@ -16,11 +16,6 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 	.max_entries= XDP_ACTION_MAX,
 };
 
-//fetch and add value to ptr
-#ifndef lock_xadd
-#define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
-#endif
-
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
@@ -28,10 +23,9 @@ int xdp_pass_func(struct xdp_md *ctx)
 	__u32 key = XDP_PASS;
 	pkt_count = bpf_map_lookup_elem(&bpf_pass_map, &key);
 	if (!pkt_count)
-	{
 		return XDP_ABORTED;
-	}
-	lock_xadd(&pkt_count, 1);	
+
+	__sync_fetch_and_add(&pkt_count, 1);	
 
 	return XDP_PASS;
 }
