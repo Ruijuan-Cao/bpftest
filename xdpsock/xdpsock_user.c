@@ -353,13 +353,11 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem,
 	ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem,
 				 rxr, txr, &cfg);
 
-	printf("----1ret=%d--\n", ret);	
 	if (ret)
 		exit_with_error(-ret);
 
 	ret = bpf_get_link_xdp_id(opt_ifindex, &prog_id, opt_xdp_flags);
 	
-	printf("----2ret=%d--\n", ret);	
 	if (ret)
 		exit_with_error(-ret);
 
