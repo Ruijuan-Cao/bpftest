@@ -1,3 +1,11 @@
+#include <errno.h>
+#include <linux/bpf.h>
+#include <linux/if_xdp.h>
+#include <bpf/libbpf.h>
+#include <bpf/xsk.h>
+#include <bpf/bpf.h>
+
+
 #ifndef MAX_SOCKS
 #define MAX_SOCKS 4
 #endif
