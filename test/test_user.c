@@ -92,6 +92,7 @@ struct xsk_socket_info *xsks[MAX_SOCKS];
 //load xdp program
 static void load_xdp_program(char **argv, struct bpf_object **obj)
 {
+	printf("----load xdp program----\n");
 	struct bpf_prog_load_attr prog_load_attr = {
 		.prog_type      = BPF_PROG_TYPE_XDP,
 	};
@@ -118,6 +119,7 @@ static void load_xdp_program(char **argv, struct bpf_object **obj)
 
 static void remove_xdp_program(void)
 {
+	printf("----remove xdp program----\n");
 	u32 curr_prog_id = 0;
 
 	if (bpf_get_link_xdp_id(opt_ifindex, &curr_prog_id, opt_xdp_flags)) {
@@ -148,6 +150,7 @@ static void __exit_with_error(int error, const char *file, const char *func,
 
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem(){
+	printf("----xsk configure umem----\n");
 	//umem config
 	struct xsk_umem_config cfg = {
 		.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
@@ -182,6 +185,7 @@ static struct xsk_umem_info *xsk_configure_umem(){
 
 static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 {
+	printf("----xsk xsk_populate_fill_ring----\n");
 	int ret, i;
 	u32 idx;
 
@@ -197,6 +201,7 @@ static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 
 //config & create socket
 static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){
+	printf("----xsk_configure_socket----\n");
 	//config
 	struct xsk_socket_config cfg;
 	struct xsk_socket_info *xsk;
