@@ -374,15 +374,6 @@ int main(int argc, char **argv)
 	bool rx = false, tx = false;
 	struct bpf_object *bpf_obj;
 
-	//define config
-	struct config cfg
-	{
-		.ifindex = -1,
-		.do_unload = false,
-		.filename = "",
-		.progsec = "test"
-	};
-
 	//command line option for changing config
 	parse_command_line(argc, argv);
 
