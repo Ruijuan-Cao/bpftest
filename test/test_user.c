@@ -18,16 +18,27 @@
 #define MAX_SOCKS 4
 #endif
 
-typedef __u64 u64;
-typedef __u32 u32;
 
 #define FRAME_NUM (4 * 1024)
 #define BATCH_SIZE	64
+
+typedef __u64 u64;
+typedef __u32 u32;
+
+enum benchmark_type {
+	BENCH_RXDROP = 0,
+	BENCH_TXONLY = 1,
+	BENCH_L2FWD = 2,
+};
+static enum benchmark_type opt_bench = BENCH_RXDROP;
+
 static int frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
 static int frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM;
 static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 static int opt_mmap_flags = 0;
 static int opt_xsks_num = 1;
+static int opt_poll;
+static int opt_interval = 1;
 
 static const char *opt_if = "";
 static int opt_ifindex;
@@ -181,6 +192,118 @@ static void load_xdp_program(char **argv, struct bpf_object **obj)
 	}
 }
 
+static void usage(const char *prog)
+{
+	const char *str =
+		"  Usage: %s [OPTIONS]\n"
+		"  Options:\n"
+		"  -r, --rxdrop		Discard all incoming packets (default)\n"
+		"  -t, --txonly		Only send packets\n"
+		"  -l, --l2fwd		MAC swap L2 forwarding\n"
+		"  -i, --interface=n	Run on interface n\n"
+		"  -q, --queue=n	Use queue n (default 0)\n"
+		"  -p, --poll		Use poll syscall\n"
+		"  -S, --xdp-skb=n	Use XDP skb-mod\n"
+		"  -N, --xdp-native=n	Enforce XDP native mode\n"
+		"  -n, --interval=n	Specify statistics update interval (default 1 sec).\n"
+		"  -z, --zero-copy      Force zero-copy mode.\n"
+		"  -c, --copy           Force copy mode.\n"
+		"  -m, --no-need-wakeup Turn off use of driver need wakeup flag.\n"
+		"  -f, --frame-size=n   Set the frame size (must be a power of two in aligned mode, default is %d).\n"
+		"  -u, --unaligned	Enable unaligned chunk placement\n"
+		"  -M, --shared-umem	Enable XDP_SHARED_UMEM\n"
+		"  -F, --force		Force loading the XDP prog\n"
+		"\n";
+	fprintf(stderr, str, prog, XSK_UMEM__DEFAULT_FRAME_SIZE);
+	exit(EXIT_FAILURE);
+}
+
+//parse command line input
+static void parse_command_line(int argc, char **argv)
+{
+	int option_index, c;
+
+	opterr = 0;
+
+	for (;;) {
+		c = getopt_long(argc, argv, "Frtli:q:psSNn:czf:muM",
+				long_options, &option_index);
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'r':
+			opt_bench = BENCH_RXDROP;
+			break;
+		case 't':
+			opt_bench = BENCH_TXONLY;
+			break;
+		case 'l':
+			opt_bench = BENCH_L2FWD;
+			break;
+		case 'i':
+			opt_if = optarg;
+			break;
+		case 'q':
+			opt_queue = atoi(optarg);
+			break;
+		case 'p':
+			opt_poll = 1;
+			break;
+		case 'S':
+			opt_xdp_flags |= XDP_FLAGS_SKB_MODE;
+			opt_xdp_bind_flags |= XDP_COPY;
+			break;
+		case 'N':
+			opt_xdp_flags |= XDP_FLAGS_DRV_MODE;
+			break;
+		case 'n':
+			opt_interval = atoi(optarg);
+			break;
+		case 'z':
+			opt_xdp_bind_flags |= XDP_ZEROCOPY;
+			break;
+		case 'c':
+			opt_xdp_bind_flags |= XDP_COPY;
+			break;
+		case 'u':
+			opt_umem_flags |= XDP_UMEM_UNALIGNED_CHUNK_FLAG;
+			opt_unaligned_chunks = 1;
+			opt_mmap_flags = MAP_HUGETLB;
+			break;
+		case 'F':
+			opt_xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
+			break;
+		case 'f':
+			opt_xsk_frame_size = atoi(optarg);
+			break;
+		case 'm':
+			opt_need_wakeup = false;
+			opt_xdp_bind_flags &= ~XDP_USE_NEED_WAKEUP;
+			break;
+		case 'M':
+			opt_xsks_num = MAX_SOCKS;
+			break;
+		default:
+			usage(basename(argv[0]));
+		}
+	}
+
+	opt_ifindex = if_nametoindex(opt_if);
+	if (!opt_ifindex) {
+		fprintf(stderr, "ERROR: interface \"%s\" does not exist\n",
+			opt_if);
+		usage(basename(argv[0]));
+	}
+
+	if ((opt_xsk_frame_size & (opt_xsk_frame_size - 1)) &&
+	    !opt_unaligned_chunks) {
+		fprintf(stderr, "--frame-size=%d is not a power of two\n",
+			opt_xsk_frame_size);
+		usage(basename(argv[0]));
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
@@ -198,7 +321,7 @@ int main(int argc, char **argv)
 	};
 
 	//command line option for changing config
-	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
+	parse_cmdline_args(argc, argv);
 
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
