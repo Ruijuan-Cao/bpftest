@@ -20,7 +20,7 @@ LINUXINCLUDE += -I$(KERNEL)include
 LINUXINCLUDE += -I$(KERNEL)arch/x86/include/uapi
 LINUXINCLUDE += -I$(KERNEL)include/uapi
 LINUXINCLUDE += -I$(KERNEL)include/generated/uapi
-LINUXINCLUDE += -include $(KERNEL)include/linux/kconfig.h
+LINUXINCLUDE += -I$(KERNEL)include/linux/kconfig.h
 LINUXINCLUDE += -I$(KERNEL)tools/lib
 
 # flags
