@@ -32,13 +32,21 @@ enum benchmark_type {
 };
 static enum benchmark_type opt_bench = BENCH_RXDROP;
 
-static int frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
 static int frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM;
 static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 static int opt_mmap_flags = 0;
+static int opt_unaligned_chunks;
+
+static int opt_timeout = 1000;
+static bool opt_need_wakeup = true;
+
+static u32 opt_xdp_bind_flags;
+
 static int opt_xsks_num = 1;
 static int opt_poll;
 static int opt_interval = 1;
+
 
 static const char *opt_if = "";
 static int opt_ifindex;
@@ -75,13 +83,26 @@ struct xsk_socket_info
 static int xsk_index = 0;
 struct xsk_socket_info **xsks[MAX_SOCKS];
 
+static void __exit_with_error(int error, const char *file, const char *func,
+			      int line)
+{
+	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
+		line, error, strerror(error));
+	dump_stats();
+	remove_xdp_program();
+	exit(EXIT_FAILURE);
+}
+
+#define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
+						 __LINE__)
+
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem(){
 	//umem config
 	struct xsk_umem_config cfg = {
 		.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
 		.comp_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
-		.frame_size = frame_size,
+		.frame_size = opt_xsk_frame_size,
 		.frame_headroom = frame_headroom,
 		.flags = opt_umem_flags,
 	};
@@ -91,7 +112,7 @@ static struct xsk_umem_info *xsk_configure_umem(){
 		exit_with_error(errno);
 
 	//umem area, mmap/munmap - map or unmap files or devices into memory
-	void *umem_area = mmap(NULL, FRAME_NUM * frame_size,
+	void *umem_area = mmap(NULL, FRAME_NUM * opt_xsk_frame_size,
 		    PROT_READ | PROT_WRITE,
 		    MAP_PRIVATE | MAP_ANONYMOUS | opt_mmap_flags, -1, 0);
 	if (umem_area == MAP_FAILED)
@@ -101,7 +122,7 @@ static struct xsk_umem_info *xsk_configure_umem(){
 	}
 
 	//create umem
-	int ret = xsk_umem__create(&umem->umem, umem_area, FRAME_NUM * frame_size, &umem->fq, &umem->cq, &cfg);
+	int ret = xsk_umem__create(&umem->umem, umem_area, FRAME_NUM * opt_xsk_frame_size, &umem->fq, &umem->cq, &cfg);
 	if (ret)
 	 	exit_with_error(ret);
 
