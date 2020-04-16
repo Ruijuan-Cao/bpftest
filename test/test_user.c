@@ -12,9 +12,14 @@
 #include <bpf/xsk.h>
 #include <bpf/bpf.h>
 
+#include "common_defs.h"
+
 #ifndef MAX_SOCKS
 #define MAX_SOCKS 4
 #endif
+
+typedef __u64 u64;
+typedef __u32 u32;
 
 #define FRAME_NUM (4 * 1024)
 #define BATCH_SIZE	64
@@ -173,7 +178,14 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+	{
+		if ((err = bpf_set_link_xdp_fd(cfg.ifindex, -1, cfg.xdp_flags)) < 0) {
+			fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
+				err, strerror(-err));
+			return EXIT_FAIL_XDP;
+		}
+		return EXIT_OK;
+	}
 
 
 	//bpf object
