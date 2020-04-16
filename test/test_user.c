@@ -89,6 +89,63 @@ struct xsk_socket_info
 static int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
+//load xdp program
+static void load_xdp_program(char **argv, struct bpf_object **obj)
+{
+	struct bpf_prog_load_attr prog_load_attr = {
+		.prog_type      = BPF_PROG_TYPE_XDP,
+	};
+	char xdp_filename[256];
+	int prog_fd;
+
+	snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
+	prog_load_attr.file = xdp_filename;
+
+	if (bpf_prog_load_xattr(&prog_load_attr, obj, &prog_fd))
+		exit(EXIT_FAILURE);
+	printf("prog_fd = %d\n", prog_fd);
+	if (prog_fd < 0) {
+		fprintf(stderr, "ERROR: no program found: %s\n",
+			strerror(prog_fd));
+		exit(EXIT_FAILURE);
+	}
+
+	if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0) {
+		fprintf(stderr, "ERROR: link set xdp fd failed\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
+static void remove_xdp_program(void)
+{
+	u32 curr_prog_id = 0;
+
+	if (bpf_get_link_xdp_id(opt_ifindex, &curr_prog_id, opt_xdp_flags)) {
+		printf("bpf_get_link_xdp_id failed\n");
+		exit(EXIT_FAILURE);
+	}
+	if (prog_id == curr_prog_id)
+		bpf_set_link_xdp_fd(opt_ifindex, -1, opt_xdp_flags);
+	else if (!curr_prog_id)
+		printf("couldn't find a prog id on a given interface\n");
+	else
+		printf("program on interface changed, not removing\n");
+}
+
+static void __exit_with_error(int error, const char *file, const char *func,
+			      int line)
+{
+	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
+		line, error, strerror(error));
+	//dump_stats();
+	remove_xdp_program();
+	exit(EXIT_FAILURE);
+}
+
+#define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
+						 __LINE__)
+
+
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem(){
 	//umem config
@@ -179,61 +236,6 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	return xsk; 
 }
 
-//load xdp program
-static void load_xdp_program(char **argv, struct bpf_object **obj)
-{
-	struct bpf_prog_load_attr prog_load_attr = {
-		.prog_type      = BPF_PROG_TYPE_XDP,
-	};
-	char xdp_filename[256];
-	int prog_fd;
-
-	snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
-	prog_load_attr.file = xdp_filename;
-
-	if (bpf_prog_load_xattr(&prog_load_attr, obj, &prog_fd))
-		exit(EXIT_FAILURE);
-	printf("prog_fd = %d\n", prog_fd);
-	if (prog_fd < 0) {
-		fprintf(stderr, "ERROR: no program found: %s\n",
-			strerror(prog_fd));
-		exit(EXIT_FAILURE);
-	}
-
-	if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0) {
-		fprintf(stderr, "ERROR: link set xdp fd failed\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
-static void remove_xdp_program(void)
-{
-	u32 curr_prog_id = 0;
-
-	if (bpf_get_link_xdp_id(opt_ifindex, &curr_prog_id, opt_xdp_flags)) {
-		printf("bpf_get_link_xdp_id failed\n");
-		exit(EXIT_FAILURE);
-	}
-	if (prog_id == curr_prog_id)
-		bpf_set_link_xdp_fd(opt_ifindex, -1, opt_xdp_flags);
-	else if (!curr_prog_id)
-		printf("couldn't find a prog id on a given interface\n");
-	else
-		printf("program on interface changed, not removing\n");
-}
-
-static void __exit_with_error(int error, const char *file, const char *func,
-			      int line)
-{
-	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
-		line, error, strerror(error));
-	//dump_stats();
-	remove_xdp_program();
-	exit(EXIT_FAILURE);
-}
-
-#define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
-						 __LINE__)
 
 static struct option long_options[] = {
 	{"rxdrop", no_argument, 0, 'r'},
