@@ -154,10 +154,39 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	return xsk; 
 }
 
+//load xdp program
+static void load_xdp_program(char **argv, struct bpf_object **obj)
+{
+	struct bpf_prog_load_attr prog_load_attr = {
+		.prog_type      = BPF_PROG_TYPE_XDP,
+	};
+	char xdp_filename[256];
+	int prog_fd;
+
+	snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
+	prog_load_attr.file = xdp_filename;
+
+	if (bpf_prog_load_xattr(&prog_load_attr, obj, &prog_fd))
+		exit(EXIT_FAILURE);
+	printf("prog_fd = %d\n", prog_fd);
+	if (prog_fd < 0) {
+		fprintf(stderr, "ERROR: no program found: %s\n",
+			strerror(prog_fd));
+		exit(EXIT_FAILURE);
+	}
+
+	if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0) {
+		fprintf(stderr, "ERROR: link set xdp fd failed\n");
+		exit(EXIT_FAILURE);
+	}
+}
 
 int main(int argc, char **argv)
 {
+	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
+
 	bool rx = false, tx = false;
+	struct bpf_object *bpf_obj;
 
 	//define config
 	struct config cfg
@@ -171,27 +200,14 @@ int main(int argc, char **argv)
 	//command line option for changing config
 	parse_cmdline_args(argc, argv, long_options, &cfg, __doc__);
 
-	/* Required option */
-	if (cfg.ifindex == -1) {
-		fprintf(stderr, "ERR: required option --dev missing\n");
-		usage(argv[0], __doc__, long_options, (argc == 1));
-		return EXIT_FAIL_OPTION;
-	}
-	if (cfg.do_unload)
-	{
-		if ((err = bpf_set_link_xdp_fd(cfg.ifindex, -1, cfg.xdp_flags)) < 0) {
-			fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
-				err, strerror(-err));
-			return EXIT_FAIL_XDP;
-		}
-		return EXIT_OK;
+	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
+		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
+			strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
-
-	//bpf object
-	struct bpf_object *bpf_obj = load_bpf_and_xdp_attach(&cfg);
-	if (!bpf_obj)
-		return EXIT_FAIL_BPF;
+	if(opt_xsks_num > 1)
+		load_xdp_program(argv, &bpf_obj);
 
 	//bpf map
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
