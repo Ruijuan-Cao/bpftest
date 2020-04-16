@@ -1,5 +1,7 @@
 #include <errno.h>
+#include <getopt.h>
 #include <linux/bpf.h>
+#include <linux/if_link.h>
 #include <linux/if_xdp.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
@@ -149,7 +151,7 @@ static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){
 	//config
 	struct xsk_socket_config cfg;
-	struct xsk_socket info *xsk;
+	struct xsk_socket_info *xsk;
 	struct xsk_ring_prod *txr;
 	struct xsk_ring_cons *rxr;
 
@@ -213,6 +215,42 @@ static void load_xdp_program(char **argv, struct bpf_object **obj)
 	}
 }
 
+static void remove_xdp_program(void)
+{
+	u32 curr_prog_id = 0;
+
+	if (bpf_get_link_xdp_id(opt_ifindex, &curr_prog_id, opt_xdp_flags)) {
+		printf("bpf_get_link_xdp_id failed\n");
+		exit(EXIT_FAILURE);
+	}
+	if (prog_id == curr_prog_id)
+		bpf_set_link_xdp_fd(opt_ifindex, -1, opt_xdp_flags);
+	else if (!curr_prog_id)
+		printf("couldn't find a prog id on a given interface\n");
+	else
+		printf("program on interface changed, not removing\n");
+}
+
+static struct option long_options[] = {
+	{"rxdrop", no_argument, 0, 'r'},
+	{"txonly", no_argument, 0, 't'},
+	{"l2fwd", no_argument, 0, 'l'},
+	{"interface", required_argument, 0, 'i'},
+	{"queue", required_argument, 0, 'q'},
+	{"poll", no_argument, 0, 'p'},
+	{"xdp-skb", no_argument, 0, 'S'},
+	{"xdp-native", no_argument, 0, 'N'},
+	{"interval", required_argument, 0, 'n'},
+	{"zero-copy", no_argument, 0, 'z'},
+	{"copy", no_argument, 0, 'c'},
+	{"frame-size", required_argument, 0, 'f'},
+	{"no-need-wakeup", no_argument, 0, 'm'},
+	{"unaligned", no_argument, 0, 'u'},
+	{"shared-umem", no_argument, 0, 'M'},
+	{"force", no_argument, 0, 'F'},
+	{0, 0, 0, 0}
+};
+
 static void usage(const char *prog)
 {
 	const char *str =
@@ -243,8 +281,6 @@ static void usage(const char *prog)
 static void parse_command_line(int argc, char **argv)
 {
 	int option_index, c;
-
-	opterr = 0;
 
 	for (;;) {
 		c = getopt_long(argc, argv, "Frtli:q:psSNn:czf:muM",
