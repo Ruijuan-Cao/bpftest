@@ -1,6 +1,9 @@
 XDP_TARGETS  := test_kern
 USER_TARGETS := test_user
 
+BINARY := test
+KERN_OBJ := test_kern.o
+
 # tools
 LLC ?= llc
 CLANG ?= clang
@@ -32,8 +35,23 @@ HOSTCFLAGS += -Wno-tautological-compare
 HOSTCFLAGS += -Wno-unknown-warning-option
 HOSTCFLAGS += -Wno-address-of-packed-member
 
+CFLAGS := -O2 -Wall -Werror
+CFLAGS += -I$(KERNEL)usr/include
+CFLAGS += -I$(KERNEL)tools/include
+CFLAGS += -I$(KERNEL)tools/lib
+CFLAGS += -I$(KERNEL)tools/perf/include
+CFLAGS += -L$(KERNEL)tools/lib/bpf
+CFLAGS += -L$(shell pwd)/lib
+
+ifdef SYSROOT
+CFLAGS += --sysroot=$(SYSROOT)
+TPROGS_LDFLAGS := -L$(SYSROOT)/usr/lib
+endif
+
+TPROGS_LDLIBS			+= $(LIBBPF) -lelf -lpthread
+
 # make
-all: $(BINARY) $(KERN_OBJ)
+all: $(KERN_OBJ) $(BINARY) 
 
 clean:
 	rm -rf *.o *.ll $(BINARY)
