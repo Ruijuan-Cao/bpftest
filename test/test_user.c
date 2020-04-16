@@ -382,6 +382,8 @@ int main(int argc, char **argv)
 	//command line option for changing config
 	parse_command_line(argc, argv);
 
+	printf("after parse_command_line\n");
+
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
 			strerror(errno));
@@ -391,6 +393,8 @@ int main(int argc, char **argv)
 	if(opt_xsks_num > 1)
 		load_xdp_program(argv, &bpf_obj);
 
+	printf("after load_xdp_program\n");
+
 	//bpf map
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
 	int pass_map = bpf_map__fd(map);
@@ -399,6 +403,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "%s\n", strerror(pass_map));
 		exit(EXIT_FAILURE);
 	}
+
+	printf("after init map\n");
 
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
