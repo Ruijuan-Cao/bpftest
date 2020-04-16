@@ -11,8 +11,8 @@
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
 	.type		= BPF_MAP_TYPE_ARRAY,
-	.key_size	= sizeof(u32),
-	.value_size	= sizeof(u64),
+	.key_size	= sizeof(__u32),
+	.value_size	= sizeof(__u64),
 	.max_entries= XDP_ACTION_MAX,
 };
 
@@ -24,8 +24,8 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
-	u32 *pkt_count;
-	u32 key = XDP_PASS;
+	__u32 *pkt_count;
+	__u32 key = XDP_PASS;
 	pkt_count = bpf_map_lookup_elem(&bpf_pass_map, &key);
 	if (pkt_count)
 	{
