@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <linux/bpf.h>
 #include <linux/if_link.h>
 #include <linux/if_xdp.h>
@@ -9,6 +10,9 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <net/if.h>
+
 
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
@@ -40,7 +44,7 @@ static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 static int opt_mmap_flags = 0;
 static int opt_unaligned_chunks;
 
-static int opt_timeout = 1000;
+//static int opt_timeout = 1000;
 static bool opt_need_wakeup = true;
 
 static u32 opt_xdp_bind_flags;
@@ -73,7 +77,7 @@ struct xsk_socket_info
 	struct xsk_ring_prod tx;	//TX
 	struct xsk_ring_cons rx;	//RX
 	struct xsk_umem_info *umem;
-	struct xsl_socket *xsks;
+	struct xsk_socket *xsk;
 	unsigned long tx_npkts;
 	unsigned long rx_npkts;
 	unsigned long pre_tx_npkts;
@@ -83,20 +87,7 @@ struct xsk_socket_info
 
 //sockets
 static int xsk_index = 0;
-struct xsk_socket_info **xsks[MAX_SOCKS];
-
-static void __exit_with_error(int error, const char *file, const char *func,
-			      int line)
-{
-	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
-		line, error, strerror(error));
-	dump_stats();
-	remove_xdp_program();
-	exit(EXIT_FAILURE);
-}
-
-#define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
-						 __LINE__)
+struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem(){
@@ -230,6 +221,19 @@ static void remove_xdp_program(void)
 	else
 		printf("program on interface changed, not removing\n");
 }
+
+static void __exit_with_error(int error, const char *file, const char *func,
+			      int line)
+{
+	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
+		line, error, strerror(error));
+	//dump_stats();
+	remove_xdp_program();
+	exit(EXIT_FAILURE);
+}
+
+#define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
+						 __LINE__)
 
 static struct option long_options[] = {
 	{"rxdrop", no_argument, 0, 'r'},
@@ -378,7 +382,7 @@ int main(int argc, char **argv)
 	};
 
 	//command line option for changing config
-	parse_cmdline_args(argc, argv);
+	parse_command_line(argc, argv);
 
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
