@@ -390,7 +390,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if(opt_xsks_num > 1)
+	//if(opt_xsks_num > 1)
 		load_xdp_program(argv, &bpf_obj);
 
 	printf("after load_xdp_program\n");
