@@ -409,6 +409,8 @@ int main(int argc, char **argv)
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
 
+	printf("after config umem\n");
+
 	//rx or tx
 	if (opt_bench == BENCH_RXDROP || opt_bench == BENCH_L2FWD) {
 		rx = true;
@@ -420,5 +422,5 @@ int main(int argc, char **argv)
 	//config & create socket
 	for(int i = 0; i < opt_xsks_num; i++)
 		xsks[xsk_index++] = xsk_configure_socket(umem, rx, tx);
-
+	printf("after config socket\n");
 }
