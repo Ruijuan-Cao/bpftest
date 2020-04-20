@@ -233,8 +233,6 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	if (!txr)
 		printf("txr is NULL\n");
 
-	printf("umem size = %d\n", umem->umem.fd);
-
 	//crate xsk
 	int ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem, rxr, txr, &cfg);
 	if(ret)
