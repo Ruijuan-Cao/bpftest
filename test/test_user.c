@@ -228,13 +228,9 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	rxr = rx ? &xsk->rx : NULL;
 	txr = tx ? &xsk->tx : NULL;
 
-	if (!rxr)
-		printf("rxr is NULL\n");
-	if (!txr)
-		printf("txr is NULL\n");
-
 	//crate xsk
 	int ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem, rxr, txr, &cfg);
+	printf("ret = %d\n", ret);
 	if(ret)
 		exit_with_error(-ret);
 
