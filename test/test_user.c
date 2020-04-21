@@ -393,10 +393,11 @@ int main(int argc, char **argv)
 	}
 
 	if(opt_xsks_num > 1)
+	{
 		load_xdp_program(argv, &bpf_obj);
-
-	printf("after load_xdp_program\n");
-
+		printf("after load_xdp_program\n");
+	}
+	
 	//bpf map
 	/*
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
