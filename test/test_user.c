@@ -151,6 +151,15 @@ static void print_benchmark(bool running)
 	}
 }
 
+//get current time(secs)
+static unsigned long get_nsecs(void)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ts.tv_sec * 1000000000UL + ts.tv_nsec;
+}
+
 //dump(resave) current statistics 
 static void dump_stats(){
 	unsigned long now = get_nsecs();
