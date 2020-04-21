@@ -13,6 +13,7 @@
 
 #include <signal.h>
 #include <locale.h>
+#include <time.h>
 
 #include <net/if.h>
 
@@ -63,6 +64,8 @@ static int opt_queue;
 static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
 
 static u32 prog_id;
+
+static unsigned long pre_time;
 
 //xsk umem info including FILL&COMPLETE ring
 struct xsk_umem_info
@@ -119,6 +122,67 @@ static void load_xdp_program(char **argv, struct bpf_object **obj)
 	}
 }
 
+//print bench mark
+static void print_benchmark(bool running)
+{
+	const char *bench_str = "INVALID";
+
+	if (opt_bench == BENCH_RXDROP)
+		bench_str = "rxdrop";
+	else if (opt_bench == BENCH_TXONLY)
+		bench_str = "txonly";
+	else if (opt_bench == BENCH_L2FWD)
+		bench_str = "l2fwd";
+
+	printf("%s:%d %s ", opt_if, opt_queue, bench_str);
+	if (opt_xdp_flags & XDP_FLAGS_SKB_MODE)
+		printf("xdp-skb ");
+	else if (opt_xdp_flags & XDP_FLAGS_DRV_MODE)
+		printf("xdp-drv ");
+	else
+		printf("	");
+
+	if (opt_poll)
+		printf("poll() ");
+
+	if (running) {
+		printf("running...");
+		fflush(stdout);
+	}
+}
+
+//dump(resave) current statistics 
+static void dump_stats(){
+	unsigned long now = get_nsecs();
+	long dt = now - pre_time;
+	int i;
+
+	pre_time = now;
+
+	for (i = 0; i < xsk_index && xsks[i]; i++) {
+		char *fmt = "%-15s %'-11.0f %'-11lu\n";
+		double rx_pps, tx_pps;
+
+		rx_pps = (xsks[i]->rx_npkts - xsks[i]->pre_rx_npkts) *
+			 1000000000. / dt;
+		tx_pps = (xsks[i]->tx_npkts - xsks[i]->pre_tx_npkts) *
+			 1000000000. / dt;
+
+		printf("\n sock%d@", i);
+		print_benchmark(false);
+		printf("\n");
+
+		printf("%-15s %-11s %-11s %-11.2f\n", "", "pps", "pkts",
+		       dt / 1000000000.);
+		printf(fmt, "rx", rx_pps, xsks[i]->rx_npkts);
+		printf(fmt, "tx", tx_pps, xsks[i]->tx_npkts);
+
+		xsks[i]->pre_rx_npkts = xsks[i]->rx_npkts;
+		xsks[i]->pre_tx_npkts = xsks[i]->tx_npkts;
+	}
+}
+
+
 static void remove_xdp_program(void)
 {
 	printf("----remove xdp program----\n");
@@ -156,7 +220,7 @@ static void normal_exit(int sig)
 	int i;
 
 	dump_stats();
-	for (i = 0; i < num_socks; i++)
+	for (i = 0; i < xsk_index; i++)
 		xsk_socket__delete(xsks[i]->xsk);
 	xsk_umem__delete(umem);
 	remove_xdp_program();
@@ -305,66 +369,6 @@ static void usage(const char *prog)
 		"\n";
 	fprintf(stderr, str, prog, XSK_UMEM__DEFAULT_FRAME_SIZE);
 	exit(EXIT_FAILURE);
-}
-
-//print bench mark
-static void print_benchmark(bool running)
-{
-	const char *bench_str = "INVALID";
-
-	if (opt_bench == BENCH_RXDROP)
-		bench_str = "rxdrop";
-	else if (opt_bench == BENCH_TXONLY)
-		bench_str = "txonly";
-	else if (opt_bench == BENCH_L2FWD)
-		bench_str = "l2fwd";
-
-	printf("%s:%d %s ", opt_if, opt_queue, bench_str);
-	if (opt_xdp_flags & XDP_FLAGS_SKB_MODE)
-		printf("xdp-skb ");
-	else if (opt_xdp_flags & XDP_FLAGS_DRV_MODE)
-		printf("xdp-drv ");
-	else
-		printf("	");
-
-	if (opt_poll)
-		printf("poll() ");
-
-	if (running) {
-		printf("running...");
-		fflush(stdout);
-	}
-}
-
-//dump(resave) current statistics 
-static void dump_stats(){
-	unsigned long now = get_nsecs();
-	long dt = now - prev_time;
-	int i;
-
-	prev_time = now;
-
-	for (i = 0; i < num_socks && xsks[i]; i++) {
-		char *fmt = "%-15s %'-11.0f %'-11lu\n";
-		double rx_pps, tx_pps;
-
-		rx_pps = (xsks[i]->rx_npkts - xsks[i]->prev_rx_npkts) *
-			 1000000000. / dt;
-		tx_pps = (xsks[i]->tx_npkts - xsks[i]->prev_tx_npkts) *
-			 1000000000. / dt;
-
-		printf("\n sock%d@", i);
-		print_benchmark(false);
-		printf("\n");
-
-		printf("%-15s %-11s %-11s %-11.2f\n", "", "pps", "pkts",
-		       dt / 1000000000.);
-		printf(fmt, "rx", rx_pps, xsks[i]->rx_npkts);
-		printf(fmt, "tx", tx_pps, xsks[i]->tx_npkts);
-
-		xsks[i]->prev_rx_npkts = xsks[i]->rx_npkts;
-		xsks[i]->prev_tx_npkts = xsks[i]->tx_npkts;
-	}
 }
 
 //parse command line input
