@@ -238,7 +238,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	int xdpid = bpf_get_link_xdp_id(opt_ifindex, &prog_id, opt_xdp_flags);	
 	if(xdpid)
 		exit_with_error(-xdpid);
-yr
+
 	return xsk; 
 }
 
