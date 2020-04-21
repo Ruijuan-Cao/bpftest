@@ -150,7 +150,7 @@ static void __exit_with_error(int error, const char *file, const char *func,
 
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem(){
-	printf("----xsk configure umem----\n");
+	printf("----xsk configure umem----%d-%d-%d-%d\n", opt_xsk_frame_size, frame_headroom, opt_umem_flags, opt_mmap_flags);
 	//umem config
 	struct xsk_umem_config cfg = {
 		.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
@@ -229,6 +229,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	txr = tx ? &xsk->tx : NULL;
 
 	//crate xsk
+	printf("----opt_if=%s\n", opt_if);
 	int ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem, rxr, txr, &cfg);
 	printf("ret = %d\n", ret);
 	if(ret)
