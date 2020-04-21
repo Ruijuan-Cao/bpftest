@@ -11,8 +11,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <net/if.h>
+#include <signal.h>
+#include <locale.h>
 
+#include <net/if.h>
 
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
@@ -139,13 +141,28 @@ static void __exit_with_error(int error, const char *file, const char *func,
 {
 	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
 		line, error, strerror(error));
-	//dump_stats();
+	dump_stats();
 	remove_xdp_program();
 	exit(EXIT_FAILURE);
 }
 
 #define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, \
 						 __LINE__)
+
+//normal_exit
+static void normal_exit(int sig)
+{
+	struct xsk_umem *umem = xsks[0]->umem->umem;
+	int i;
+
+	dump_stats();
+	for (i = 0; i < num_socks; i++)
+		xsk_socket__delete(xsks[i]->xsk);
+	xsk_umem__delete(umem);
+	remove_xdp_program();
+
+	exit(EXIT_SUCCESS);
+}
 
 
 //xsk configure umem
@@ -290,6 +307,66 @@ static void usage(const char *prog)
 	exit(EXIT_FAILURE);
 }
 
+//print bench mark
+static void print_benchmark(bool running)
+{
+	const char *bench_str = "INVALID";
+
+	if (opt_bench == BENCH_RXDROP)
+		bench_str = "rxdrop";
+	else if (opt_bench == BENCH_TXONLY)
+		bench_str = "txonly";
+	else if (opt_bench == BENCH_L2FWD)
+		bench_str = "l2fwd";
+
+	printf("%s:%d %s ", opt_if, opt_queue, bench_str);
+	if (opt_xdp_flags & XDP_FLAGS_SKB_MODE)
+		printf("xdp-skb ");
+	else if (opt_xdp_flags & XDP_FLAGS_DRV_MODE)
+		printf("xdp-drv ");
+	else
+		printf("	");
+
+	if (opt_poll)
+		printf("poll() ");
+
+	if (running) {
+		printf("running...");
+		fflush(stdout);
+	}
+}
+
+//dump(resave) current statistics 
+static void dump_stats(){
+	unsigned long now = get_nsecs();
+	long dt = now - prev_time;
+	int i;
+
+	prev_time = now;
+
+	for (i = 0; i < num_socks && xsks[i]; i++) {
+		char *fmt = "%-15s %'-11.0f %'-11lu\n";
+		double rx_pps, tx_pps;
+
+		rx_pps = (xsks[i]->rx_npkts - xsks[i]->prev_rx_npkts) *
+			 1000000000. / dt;
+		tx_pps = (xsks[i]->tx_npkts - xsks[i]->prev_tx_npkts) *
+			 1000000000. / dt;
+
+		printf("\n sock%d@", i);
+		print_benchmark(false);
+		printf("\n");
+
+		printf("%-15s %-11s %-11s %-11.2f\n", "", "pps", "pkts",
+		       dt / 1000000000.);
+		printf(fmt, "rx", rx_pps, xsks[i]->rx_npkts);
+		printf(fmt, "tx", tx_pps, xsks[i]->tx_npkts);
+
+		xsks[i]->prev_rx_npkts = xsks[i]->rx_npkts;
+		xsks[i]->prev_tx_npkts = xsks[i]->tx_npkts;
+	}
+}
+
 //parse command line input
 static void parse_command_line(int argc, char **argv)
 {
@@ -384,8 +461,6 @@ int main(int argc, char **argv)
 	//command line option for changing config
 	parse_command_line(argc, argv);
 
-	printf("after parse_command_line\n");
-
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
 			strerror(errno));
@@ -393,13 +468,9 @@ int main(int argc, char **argv)
 	}
 
 	if(opt_xsks_num > 1)
-	{
 		load_xdp_program(argv, &bpf_obj);
-		printf("after load_xdp_program\n");
-	}
 	
 	//bpf map
-	/*
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
 	int pass_map = bpf_map__fd(map);
 	if (pass_map < 0)
@@ -408,13 +479,8 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	printf("after init map\n");
-	*/
-
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
-
-	printf("after config umem\n");
 
 	//rx or tx
 	if (opt_bench == BENCH_RXDROP || opt_bench == BENCH_L2FWD) {
@@ -427,5 +493,11 @@ int main(int argc, char **argv)
 	//config & create socket
 	for(int i = 0; i < opt_xsks_num; i++)
 		xsks[xsk_index++] = xsk_configure_socket(umem, rx, tx);
-	printf("after config socket\n");
+	printf("success to config socket\n");
+
+	signal(SIGINT, normal_exit);
+	signal(SIGTERM, normal_exit);
+	signal(SIGABRT, normal_exit);
+
+	setlocale(LC_ALL, "");
 }
