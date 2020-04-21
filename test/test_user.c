@@ -238,7 +238,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	int xdpid = bpf_get_link_xdp_id(opt_ifindex, &prog_id, opt_xdp_flags);	
 	if(xdpid)
 		exit_with_error(-xdpid);
-
+yr
 	return xsk; 
 }
 
@@ -397,6 +397,7 @@ int main(int argc, char **argv)
 	printf("after load_xdp_program\n");
 
 	//bpf map
+	/*
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
 	int pass_map = bpf_map__fd(map);
 	if (pass_map < 0)
@@ -406,6 +407,7 @@ int main(int argc, char **argv)
 	}
 
 	printf("after init map\n");
+	*/
 
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
