@@ -497,7 +497,7 @@ static void configure_bpf_map(struct bpf_object *bpf_obj){
 
 static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
 {
-	memcpy(xsk_umem__get_data(umem->umem_area, addr), pkt_data,
+	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data,
 	       sizeof(pkt_data) - 1);
 	//return sizeof(pkt_data) - 1;
 }
