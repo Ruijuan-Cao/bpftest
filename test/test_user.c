@@ -34,7 +34,7 @@
 #define FRAME_NUM (4 * 1024)
 #define BATCH_SIZE	64
 
-#define DEBUG_HEXDUMP 1 //0
+#define DEBUG_HEXDUMP 0
 
 typedef __u64 u64;
 typedef __u32 u32;
@@ -59,7 +59,7 @@ static u32 opt_xdp_bind_flags;
 
 static int opt_xsks_num = 1;
 static int opt_poll;
-static int opt_interval = 10;
+static int opt_interval = 1;
 
 
 static const char *opt_if = "";
@@ -574,6 +574,8 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 
 	//if recv, then reserve space(recvd data's) in umem
 	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+	printf("---%d,%d--free size=%d\n", xsk->umem->fd->cached_prod,xsk->umem->fd->cached_cons, xsk_prod_nb_free(xsk->umem->fd, recvd));
+
 	printf("ret=%d\n", ret);
 	while(ret != recvd){
 		if (ret < 0)
