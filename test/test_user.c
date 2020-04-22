@@ -847,7 +847,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 
 		//FILL RING
 		for (int i = 0; i < stock_frames; ++i)
-			xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
 		
 		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
 	}
