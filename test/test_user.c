@@ -557,18 +557,18 @@ static void hex_dump(void *pkt, size_t length, u64 addr)
 
 //rx drop function
 static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
-	printf("----rx_drop----\n");
+	//printf("----rx_drop----\n");
 	//get the recvd packet number
 	u32 idx_rx = 0, idx_fq = 0;
 	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	int ret;				
 
-	printf("recvd=%d\n", recvd);
+	//printf("recvd=%d\n", recvd);
 	//if not recv, wakeup the umem, then wait using poll mode
 	if (!recvd)
 	{
-		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
-			ret = poll(fds, xsk_index, opt_timeout);
+		// if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			// ret = poll(fds, xsk_index, opt_timeout);
 		return;
 	}
 
@@ -578,8 +578,8 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	while(ret != recvd){
 		if (ret < 0)
 			exit_with_error(-ret);
-		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
-			ret = poll(fds, xsk_index, opt_timeout);
+		// if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			// ret = poll(fds, xsk_index, opt_timeout);
 		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
 	}
 	printf("recvd=%d, ret=%d\n", recvd, ret);
@@ -628,7 +628,6 @@ static void rx_drop_all(){
 		if (opt_poll)
 		{
 			int ret = poll(fds, xsk_index, opt_timeout);
-			printf("----xsk_index=%d-----ret=%d\n", xsk_index, ret);
 			if (ret <= 0)
 				continue;
 		}
