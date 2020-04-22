@@ -557,6 +557,7 @@ static void hex_dump(void *pkt, size_t length, u64 addr)
 
 //rx drop function
 static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
+	printf("----rx_drop----\n");
 	//get the recvd packet number
 	u32 idx_rx = 0, idx_fq = 0;
 	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
