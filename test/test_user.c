@@ -225,6 +225,7 @@ static void __exit_with_error(int error, const char *file, const char *func,
 //normal_exit
 static void normal_exit(int sig)
 {
+	printf("----normal_exit----\n");
 	struct xsk_umem *umem = xsks[0]->umem->umem;
 	int i;
 
@@ -464,6 +465,37 @@ static void parse_command_line(int argc, char **argv)
 	}
 }
 
+//
+static void configure_bpf_map(struct bpf_object *bpf_obj){
+	//bpf map
+	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
+	int pass_map = bpf_map__fd(map);
+	if (pass_map < 0)
+	{
+		fprintf(stderr, "%s\n", strerror(pass_map));
+		exit(EXIT_FAILURE);
+	}
+
+	for (int i = 0; i < xsk_index; ++i)
+	{
+		int fd = xsk_socket__fd(xsks[i]->xsk);
+		int key = i;
+		int ret = bpf_map_update_elem(pass_map, &key, &fd, 0);
+		if (ret)
+		{
+			fprintf(stderr, "ERROR: bpf_map_update_elem %d\n", i);
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
+static size_t gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
+{
+	memcpy(xsk_umem__get_data(umem->buffer, addr), pkt_data,
+	       sizeof(pkt_data) - 1);
+	return sizeof(pkt_data) - 1;
+}
+
 int main(int argc, char **argv)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
@@ -482,15 +514,6 @@ int main(int argc, char **argv)
 
 	if(opt_xsks_num > 1)
 		load_xdp_program(argv, &bpf_obj);
-	
-	//bpf map
-	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
-	int pass_map = bpf_map__fd(map);
-	if (pass_map < 0)
-	{
-		fprintf(stderr, "%s\n", strerror(pass_map));
-		exit(EXIT_FAILURE);
-	}
 
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
@@ -508,9 +531,18 @@ int main(int argc, char **argv)
 		xsks[xsk_index++] = xsk_configure_socket(umem, rx, tx);
 	printf("success to config socket\n");
 
+	if (opt_bench == BENCH_TXONLY)
+		for (int i = 0; i < FRAME_NUM; ++i)
+			gen_eth_frame(umem, i * opt_xsk_frame_size);
+
+	if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
+		configure_bpf_map(obj);
+
 	signal(SIGINT, normal_exit);
 	signal(SIGTERM, normal_exit);
 	signal(SIGABRT, normal_exit);
 
 	setlocale(LC_ALL, "");
+
 }
+
