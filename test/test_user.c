@@ -671,7 +671,7 @@ static void kick_tx(struct xsk_socket_info *xsk)
 
 static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 {
-	u32 idx_cq;
+	u32 idx;
 	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE)
 	{
 		for (int i = 0; i < BATCH_SIZE; ++i)
@@ -697,7 +697,7 @@ static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 		kick_tx(xsk);
 
 	//get complete
-	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx_cq);
+	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx);
 	if (complete > 0)
 	{
 		xsk_ring_cons__release(&xsk->umem->cq, complete);
@@ -751,7 +751,7 @@ static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
 {
-	assert(xsk->umem_frame_free < NUM_FRAMES);
+	assert(xsk->umem_frame_free < FRAME_NUM);
 
 	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
@@ -847,7 +847,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 
 		//FILL RING
 		for (int i = 0; i < stock_frames; ++i)
-			xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
 		
 		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
 	}
@@ -860,7 +860,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 		
 		if(!process_packet(xsk, addr, len))		//drop directly
-			xsk_free_umem_frame(xsk, addr)
+			xsk_free_umem_frame(xsk, addr);
 	}
 
 	//release socket's rx
