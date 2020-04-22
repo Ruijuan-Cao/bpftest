@@ -669,31 +669,9 @@ static void kick_tx(struct xsk_socket_info *xsk)
 	exit_with_error(errno);
 }
 
-//complete tx process
-static inline void complete_tx(struct xsk_socket_info *xsk)
-{
-	u32 idx_cq;
-	//tx
-	if (!xsk->outstanding_tx)
-		return;
-
-	//wakeup tx
-	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
-		kick_tx(xsk);
-
-	//get complete
-	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx_cq);
-	if (complete > 0)
-	{
-		xsk_ring_cons__release(&xsk->umem->cq, complete);
-		xsk->outstanding_tx -= complete;
-		xsk->tx_npkts += complete;
-	}
-}
-
 static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 {
-	u32 idx;
+	u32 idx_cq;
 	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE)
 	{
 		for (int i = 0; i < BATCH_SIZE; ++i)
@@ -710,7 +688,22 @@ static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 		frame_nb %= FRAME_NUM;
 	}
 
-	complete_tx(xsk);
+	//tx
+	if (!xsk->outstanding_tx)
+		return;
+
+	//wakeup tx
+	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
+		kick_tx(xsk);
+
+	//get complete
+	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx_cq);
+	if (complete > 0)
+	{
+		xsk_ring_cons__release(&xsk->umem->cq, complete);
+		xsk->outstanding_tx -= complete;
+		xsk->tx_npkts += complete;
+	}
 }
 //tx only
 static void tx_only_all(){
@@ -754,6 +747,13 @@ static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
 	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
 	return frame;
+}
+
+static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
+{
+	assert(xsk->umem_frame_free < NUM_FRAMES);
+
+	xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
 
 static inline __sum16 csum16_add(__sum16 csum, __be16 addend)
@@ -847,7 +847,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 
 		//FILL RING
 		for (int i = 0; i < stock_frames; ++i)
-			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
+			xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
 		
 		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
 	}
@@ -860,11 +860,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 		
 		if(!process_packet(xsk, addr, len))		//drop directly
-		{
-			//free umem
-			assert(xsk->umem_frame_free < FRAME_NUM);
-			xsk->umem_frame_addr[xsk->umem_frame_free++] = addr;
-		}
+			xsk_free_umem_frame(xsk, addr)
 	}
 
 	//release socket's rx
@@ -873,7 +869,27 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	xsk->rx_npkts += recvd;
 
 	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk);
+	//complete_tx(xsk);
+
+	//complete tx process
+	u32 idx_cq;
+	//tx
+	if (!xsk->outstanding_tx)
+		return;
+
+	//wakeup tx
+	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
+		kick_tx(xsk);
+
+	//get completed
+	int completed = xsk_ring_cons__peek(&xsk->umem->cq, XSK_RING_CONS__DEFAULT_NUM_DESCS, &idx_cq);
+	if (completed > 0)
+	{
+		for (int i = 0; i < completed; i++)
+			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,idx_cq++));
+		xsk_ring_cons__release(&xsk->umem->cq, completed);
+	}
+	
 }
 
 //forward
