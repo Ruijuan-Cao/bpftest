@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <locale.h>
 #include <time.h>
+#include <unistd.h> //sleep
 
 #include <net/if.h>
 
@@ -30,9 +31,10 @@
 #define MAX_SOCKS 4
 #endif
 
-
 #define FRAME_NUM (4 * 1024)
 #define BATCH_SIZE	64
+
+#define DEBUG_HEXDUMP 1 //0
 
 typedef __u64 u64;
 typedef __u32 u32;
@@ -50,7 +52,7 @@ static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 static int opt_mmap_flags = 0;
 static int opt_unaligned_chunks;
 
-//static int opt_timeout = 1000;
+static int opt_timeout = 1000;
 static bool opt_need_wakeup = true;
 
 static u32 opt_xdp_bind_flags;
@@ -554,16 +556,16 @@ static void hex_dump(void *pkt, size_t length, u64 addr)
 
 
 //rx drop function
-static void rx_drop(struct xsk_socket_info *xsk, struct polled *fds){
+static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	//get the recvd packet number
-	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	u32 idx_rx = 0, idx_fq = 0;
+	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	int ret;				
 
 	//if not recv, wakeup the umem, then wait using poll mode
 	if (!recvd)
 	{
-		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq));
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
 			ret = poll(fds, xsk_index, opt_timeout);
 		return;
 	}
@@ -575,7 +577,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct polled *fds){
 			exit_with_error(-ret);
 		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
 			ret = poll(fds, xsk_index,opt_timeout);
-		ret = xsk_ring_prod__reserve(&xsk->umem->fq. recvd, &idx_fq);
+		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
 	}
 
 	//get the recved data
@@ -591,7 +593,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct polled *fds){
 		//add umem's offset to addr,get the real addr
 		addr = xsk_umem__add_offset_to_addr(addr);
 
-		//get date from umem(real addr)
+		//get data from umem(real addr)
 		char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
 		//dump recvd data in hex mode
 		hex_dump(pkt, len, addr);
@@ -699,7 +701,7 @@ int main(int argc, char **argv)
 	if (ret)
 		exit_with_error(ret);
 
-	prev_time = get_nsecs();
+	pre_time = get_nsecs();
 
 	if (opt_bench == BENCH_RXDROP)
 		rx_drop_all();
