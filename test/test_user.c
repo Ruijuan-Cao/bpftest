@@ -17,6 +17,9 @@
 
 #include <net/if.h>
 
+#include <pthread.h>
+#include <poll.h>
+
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
 #include <bpf/bpf.h>
@@ -502,12 +505,154 @@ static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
 	//return sizeof(pkt_data) - 1;
 }
 
+//poller dump_stats with period
+static void *poller(void *arg)
+{
+	(void)arg;
+	for (;;) {
+		sleep(opt_interval);
+		dump_stats();
+	}
+
+	return NULL;
+}
+
+static void hex_dump(void *pkt, size_t length, u64 addr)
+{
+	const unsigned char *address = (unsigned char *)pkt;
+	const unsigned char *line = address;
+	size_t line_size = 32;
+	unsigned char c;
+	char buf[32];
+	int i = 0;
+
+	if (!DEBUG_HEXDUMP)
+		return;
+
+	sprintf(buf, "addr=%llu", addr);
+	printf("length = %zu\n", length);
+	printf("%s | ", buf);
+	while (length-- > 0) {
+		printf("%02X ", *address++);
+		if (!(++i % line_size) || (length == 0 && i % line_size)) {
+			if (length == 0) {
+				while (i++ % line_size)
+					printf("__ ");
+			}
+			printf(" | ");	/* right close */
+			while (line < address) {
+				c = *line++;
+				printf("%c", (c < 33 || c == 255) ? 0x2E : c);
+			}
+			printf("\n");
+			if (length > 0)
+				printf("%s | ", buf);
+		}
+	}
+	printf("\n");
+}
+
+
+//rx drop function
+static void rx_drop(struct xsk_socket_info *xsk, struct polled *fds){
+	//get the recvd packet number
+	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
+	u32 idx_rx = 0, idx_fq = 0;
+	int ret;				
+
+	//if not recv, wakeup the umem, then wait using poll mode
+	if (!recvd)
+	{
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq));
+			ret = poll(fds, xsk_index, opt_timeout);
+		return;
+	}
+
+	//if recv, then reserve space(recvd data's) in umem
+	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+	while(ret != recvd){
+		if (ret < 0)
+			exit_with_error(-ret);
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			ret = poll(fds, xsk_index,opt_timeout);
+		ret = xsk_ring_prod__reserve(&xsk->umem->fq. recvd, &idx_fq);
+	}
+
+	//get the recved data
+	for (int i = 0; i < recvd; ++i)
+	{
+		//get addr、len from rx ring
+		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
+		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
+
+		//save orig addr to a temp variable（orig）
+		u64 orig = xsk_umem__extract_addr(addr);
+
+		//add umem's offset to addr,get the real addr
+		addr = xsk_umem__add_offset_to_addr(addr);
+
+		//get date from umem(real addr)
+		char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
+		//dump recvd data in hex mode
+		hex_dump(pkt, len, addr);
+		//push original addr to umem's fill ring
+		*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = orig;
+	}	
+
+	//submit umem's fq
+	xsk_ring_prod__submit(&xsk->umem->fq, recvd);
+	//release socket's rx
+	xsk_ring_cons__release(&xsk->rx, recvd);	
+	//update the xsk's rx packet number
+	xsk->rx_npkts += recvd;
+}
+
+//rx drop only
+static void rx_drop_all(){
+	printf("----rx_drop_all----\n");
+
+	struct pollfd fds[MAX_SOCKS] = {};
+
+	for (int i = 0; i < xsk_index; ++i)
+	{
+		fds[i].fd = xsk_socket__fd(xsks[i]->xsk);
+		fds[i].events = POLLIN;
+	}
+
+	while(1){
+		if (opt_poll)
+		{
+			int ret = poll(fds, xsk_index, opt_timeout);
+			if (ret <= 0)
+				continue;
+		}
+
+		for (int i = 0; i < xsk_index; ++i)
+		{
+			rx_drop(xsks[i], fds);
+		}
+	}
+}
+
+//tx only
+static void tx_only_all(){
+	printf("----tx_only_all----\n");
+
+}
+
+//forward
+static void l2fwd_all(){
+	printf("----l2fwd_all----\n");
+
+}
+
 int main(int argc, char **argv)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
 
 	bool rx = false, tx = false;
 	struct bpf_object *bpf_obj;
+	pthread_t pt;
 
 	//command line option for changing config
 	parse_command_line(argc, argv);
@@ -549,6 +694,21 @@ int main(int argc, char **argv)
 	signal(SIGABRT, normal_exit);
 
 	setlocale(LC_ALL, "");
+
+	int ret = pthread_create(&pt, NULL, poller, NULL);
+	if (ret)
+		exit_with_error(ret);
+
+	prev_time = get_nsecs();
+
+	if (opt_bench == BENCH_RXDROP)
+		rx_drop_all();
+	else if (opt_bench == BENCH_TXONLY)
+		tx_only_all();
+	else
+		l2fwd_all();
+
+	return 0;
 
 }
 
