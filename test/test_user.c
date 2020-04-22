@@ -872,7 +872,6 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	//complete_tx(xsk);
 
 	//complete tx process
-	u32 idx_cq;
 	//tx
 	if (!xsk->outstanding_tx)
 		return;
