@@ -27,6 +27,8 @@
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
 
+#include <assert.h>
+
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
 #include <bpf/bpf.h>
@@ -41,6 +43,7 @@
 #define BATCH_SIZE	64
 
 #define DEBUG_HEXDUMP 0
+#define INVALID_UMEM_FRAME UINT64_MAX
 
 typedef __u64 u64;
 typedef __u32 u32;
@@ -353,10 +356,10 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 
 
 	/* Initialize umem frame allocation */
-	for (i = 0; i < FRAME_NUM; i++)
-		xsk_info->umem_frame_addr[i] = i * FRAME_SIZE;
+	for (int i = 0; i < FRAME_NUM; i++)
+		xsk->umem_frame_addr[i] = i * opt_xsk_frame_size;
 
-	xsk_info->umem_frame_free = FRAME_NUM;
+	xsk->umem_frame_free = FRAME_NUM;
 
 	return xsk; 
 }
@@ -682,14 +685,15 @@ static inline void complete_tx(struct xsk_socket_info *xsk)
 	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx_cq);
 	if (complete > 0)
 	{
-		xsk_ring_cons__release(&xsk->umem->cqm recvd);
-		xsk->outstanding_tx -= recvd;
-		xsk->tx_npkts += recvd;
+		xsk_ring_cons__release(&xsk->umem->cq, complete);
+		xsk->outstanding_tx -= complete;
+		xsk->tx_npkts += complete;
 	}
 }
 
 static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 {
+	u32 idx;
 	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE)
 	{
 		for (int i = 0; i < BATCH_SIZE; ++i)
@@ -706,7 +710,7 @@ static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 		frame_nb %= FRAME_NUM;
 	}
 
-	complete_tx_only(xsk);
+	complete_tx(xsk);
 }
 //tx only
 static void tx_only_all(){
@@ -719,7 +723,7 @@ static void tx_only_all(){
 	//why only 0
 	for (int i = 0; i < xsk_index; ++i)
 	{
-		fds[0].fd = xsk_socket__fd(xsk[i]->xsk);
+		fds[0].fd = xsk_socket__fd(xsks[i]->xsk);
 		fds[0].events = POLLOUT;
 	}
 
@@ -833,7 +837,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		return;
 
 	//Stuff the ring with as much frames as possible 
-	int stock_frames = xsk_prod_nb_free(*xsk->umem->fq, xsk->umem_frame_free);
+	int stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk->umem_frame_free);
 	if (stock_frames > 0)
 	{
 		//get space
@@ -858,8 +862,8 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		if(!process_packet(xsk, addr, len))		//drop directly
 		{
 			//free umem
-			assert(xsk->umem_frame_free < NUM_FRAMES);
-			xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
+			assert(xsk->umem_frame_free < FRAME_NUM);
+			xsk->umem_frame_addr[xsk->umem_frame_free++] = addr;
 		}
 	}
 
@@ -875,9 +879,12 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 //forward
 static void l2fwd_all(){
 	printf("----l2fwd_all----\n");
+
+	struct pollfd fds[MAX_SOCKS] = {};
+
 	for (int i = 0; i < xsk_index; ++i)
 	{
-		fds[i].fd = xsk_socket__fd(xsk[i]->xsk);
+		fds[i].fd = xsk_socket__fd(xsks[i]->xsk);
 		fds[i].events = POLLIN | POLLOUT;
 	}
 
