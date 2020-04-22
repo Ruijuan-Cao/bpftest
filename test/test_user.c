@@ -563,6 +563,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	unsigned int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	int ret;				
 
+	printf("recvd=%d\n", recvd);
 	//if not recv, wakeup the umem, then wait using poll mode
 	if (!recvd)
 	{
@@ -573,6 +574,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 
 	//if recv, then reserve space(recvd data's) in umem
 	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+	printf("ret=%d\n", ret);
 	while(ret != recvd){
 		if (ret < 0)
 			exit_with_error(-ret);
@@ -580,7 +582,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 			ret = poll(fds, xsk_index,opt_timeout);
 		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
 	}
-
+	printf("recvd=%d, ret=%d\n", recvd, ret);
 	//get the recved data
 	for (int i = 0; i < recvd; ++i)
 	{
