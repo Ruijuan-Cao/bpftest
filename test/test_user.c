@@ -67,6 +67,12 @@ static u32 prog_id;
 
 static unsigned long pre_time;
 
+static const char pkt_data[] =
+	"\x3c\xfd\xfe\x9e\x7f\x71\xec\xb1\xd7\x98\x3a\xc0\x08\x00\x45\x00"
+	"\x00\x2e\x00\x00\x00\x00\x40\x11\x88\x97\x05\x08\x07\x08\xc8\x14"
+	"\x1e\x04\x10\x92\x10\x92\x00\x1a\x6d\xa3\x34\x33\x1f\x69\x40\x6b"
+	"\x54\x59\xb6\x14\x2d\x11\x44\xbf\xaf\xd9\xbe\xaa";
+
 //xsk umem info including FILL&COMPLETE ring
 struct xsk_umem_info
 {	
@@ -489,11 +495,11 @@ static void configure_bpf_map(struct bpf_object *bpf_obj){
 	}
 }
 
-static size_t gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
+static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
 {
-	memcpy(xsk_umem__get_data(umem->buffer, addr), pkt_data,
+	memcpy(xsk_umem__get_data(umem->umem_area, addr), pkt_data,
 	       sizeof(pkt_data) - 1);
-	return sizeof(pkt_data) - 1;
+	//return sizeof(pkt_data) - 1;
 }
 
 int main(int argc, char **argv)
@@ -536,7 +542,7 @@ int main(int argc, char **argv)
 			gen_eth_frame(umem, i * opt_xsk_frame_size);
 
 	if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
-		configure_bpf_map(obj);
+		configure_bpf_map(bpf_obj);
 
 	signal(SIGINT, normal_exit);
 	signal(SIGTERM, normal_exit);
