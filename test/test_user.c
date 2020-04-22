@@ -59,7 +59,7 @@ static u32 opt_xdp_bind_flags;
 
 static int opt_xsks_num = 1;
 static int opt_poll;
-static int opt_interval = 1;
+static int opt_interval = 10;
 
 
 static const char *opt_if = "";
@@ -567,8 +567,8 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	//if not recv, wakeup the umem, then wait using poll mode
 	if (!recvd)
 	{
-		// if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
-			// ret = poll(fds, xsk_index, opt_timeout);
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			ret = poll(fds, xsk_index, opt_timeout);
 		return;
 	}
 
@@ -578,8 +578,8 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	while(ret != recvd){
 		if (ret < 0)
 			exit_with_error(-ret);
-		// if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
-			// ret = poll(fds, xsk_index, opt_timeout);
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			ret = poll(fds, xsk_index, opt_timeout);
 		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
 	}
 	printf("recvd=%d, ret=%d\n", recvd, ret);
