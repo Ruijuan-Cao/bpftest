@@ -574,7 +574,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 
 	//if recv, then reserve space(recvd data's) in umem
 	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
-	printf("---%d,%d--free size=%d\n", xsk->umem->fq->cached_prod,xsk->umem->fq->cached_cons, xsk_prod_nb_free(xsk->umem->fq, recvd));
+	printf("-----free size=%d\n", xsk_prod_nb_free(&xsk->umem->fq, recvd));
 
 	printf("ret=%d\n", ret);
 	while(ret != recvd){
