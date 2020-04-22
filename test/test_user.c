@@ -2,7 +2,6 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <linux/bpf.h>
-#include <linux/if_link.h>
 #include <linux/if_xdp.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
@@ -20,6 +19,13 @@
 
 #include <pthread.h>
 #include <poll.h>
+
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <linux/if_link.h>
+#include <linux/if_ether.h>
+#include <linux/ipv6.h>
+#include <linux/icmpv6.h>
 
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
@@ -99,6 +105,9 @@ struct xsk_socket_info
 	unsigned long pre_tx_npkts;
 	unsigned long pre_rx_npkts;
 	u64 outstanding_tx;
+	//for stock frames
+	u64 umem_frame_addr[FRAME_NUM];
+	u64 umem_frame_free;
 };
 
 //sockets
@@ -342,6 +351,13 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	if(xdpid)
 		exit_with_error(-xdpid);
 
+
+	/* Initialize umem frame allocation */
+	for (i = 0; i < FRAME_NUM; i++)
+		xsk_info->umem_frame_addr[i] = i * FRAME_SIZE;
+
+	xsk_info->umem_frame_free = FRAME_NUM;
+
 	return xsk; 
 }
 
@@ -555,6 +571,7 @@ static void hex_dump(void *pkt, size_t length, u64 addr)
 }
 
 
+
 //rx drop function
 static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	//printf("----rx_drop----\n");
@@ -574,7 +591,6 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 
 	//if recv, then reserve space(recvd data's) in umem
 	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
-	printf("-----free size=%d\n", xsk_prod_nb_free(&xsk->umem->fq, recvd));
 
 	printf("ret=%d\n", ret);
 	while(ret != recvd){
@@ -585,7 +601,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
 	}
 	printf("recvd=%d, ret=%d\n", recvd, ret);
-	//get the recved data
+	//process the recved data
 	for (int i = 0; i < recvd; ++i)
 	{
 		//get addr、len from rx ring
@@ -635,22 +651,247 @@ static void rx_drop_all(){
 		}
 
 		for (int i = 0; i < xsk_index; ++i)
-		{
 			rx_drop(xsks[i], fds);
-		}
 	}
 }
 
+//kick_tx, keep wake
+static void kick_tx(struct xsk_socket_info *xsk)
+{
+	int ret;
+
+	ret = sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY)
+		return;
+	exit_with_error(errno);
+}
+
+//complete tx process
+static inline void complete_tx(struct xsk_socket_info *xsk)
+{
+	u32 idx_cq;
+	//tx
+	if (!xsk->outstanding_tx)
+		return;
+
+	//wakeup tx
+	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
+		kick_tx(xsk);
+
+	//get complete
+	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx_cq);
+	if (complete > 0)
+	{
+		xsk_ring_cons__release(&xsk->umem->cqm recvd);
+		xsk->outstanding_tx -= recvd;
+		xsk->tx_npkts += recvd;
+	}
+}
+
+static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
+{
+	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE)
+	{
+		for (int i = 0; i < BATCH_SIZE; ++i)
+		{
+			//set the tx ring
+			xsk_ring_prod__tx_desc(&xsk->tx, idx + i)->addr = (frame_nb + i) << XSK_UMEM__DEFAULT_FRAME_SHIFT;
+			xsk_ring_prod__tx_desc(&xsk->tx, idx + i)->len = sizeof(pkt_data) - 1;
+		}
+
+		xsk_ring_prod__submit(&xsk->tx, BATCH_SIZE);
+		xsk->outstanding_tx += BATCH_SIZE;
+
+		frame_nb += BATCH_SIZE;
+		frame_nb %= FRAME_NUM;
+	}
+
+	complete_tx_only(xsk);
+}
 //tx only
 static void tx_only_all(){
 	printf("----tx_only_all----\n");
 
+	struct pollfd fds[MAX_SOCKS] = {};
+	u32 frame_nb[MAX_SOCKS] = {};
+	int ret;
+
+	//why only 0
+	for (int i = 0; i < xsk_index; ++i)
+	{
+		fds[0].fd = xsk_socket__fd(xsk[i]->xsk);
+		fds[0].events = POLLOUT;
+	}
+
+	while(1){
+		if (opt_poll)
+		{
+			ret = poll(fds, xsk_index, opt_timeout);
+			if (ret <= 0)
+				continue;
+			if (!(fds[0].revents & POLLOUT))
+				continue;
+		}
+
+		for (int i = 0; i < xsk_index; ++i)
+		{
+			tx_only(xsks[i], frame_nb[i]);
+		}
+	}
+}
+
+//
+static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
+{
+	uint64_t frame;
+	if (xsk->umem_frame_free == 0)
+		return INVALID_UMEM_FRAME;
+
+	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
+	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
+	return frame;
+}
+
+static inline __sum16 csum16_add(__sum16 csum, __be16 addend)
+{
+	uint16_t res = (uint16_t)csum;
+
+	res += (__u16)addend;
+	return (__sum16)(res + (res < (__u16)addend));
+}
+
+static inline __sum16 csum16_sub(__sum16 csum, __be16 addend)
+{
+	return csum16_add(csum, ~addend);
+}
+
+static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
+{
+	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
+}
+
+//process_packet, then echo IPv6 ICMP
+static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
+{
+	//get packet
+	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
+
+	//get ipv6 info
+	struct ethhdr *eth = (struct ethhdr *) pkt;
+	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
+	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
+
+	char tmp_mac[ETH_ALEN];
+	struct in6_addr tmp_ip;
+
+	//swap dest and source mac
+	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
+	memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
+	memcpy(eth->h_source, tmp_mac, ETH_ALEN);
+
+	//swap ip
+	memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
+	memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
+	memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
+
+	icmp->icmp6_type = ICMPV6_ECHO_REQUEST;
+	csum_replace2(&icmp->icmp6_cksum,
+		htons(ICMPV6_ECHO_REQUEST << 8),
+	    htons(ICMPV6_ECHO_REPLY << 8));
+
+	//check
+	if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
+		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
+		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
+		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
+			return false;
+
+	//send back, reserve tx space
+	u32 tx_idx;
+	int ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
+	if(!ret)
+		return false;
+
+	//fill addr to tx 
+	xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
+	xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
+	xsk_ring_prod__submit(&xsk->tx, 1);
+	xsk->outstanding_tx++;
+
+	xsk->tx_npkts++;
+	return true;
+}
+
+//recv, then send
+static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
+{
+	u32 idx_rx = 0, idx_fq = 0;
+
+	//recv
+	int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
+	if (!recvd)
+		return;
+
+	//Stuff the ring with as much frames as possible 
+	int stock_frames = xsk_prod_nb_free(*xsk->umem->fq, xsk->umem_frame_free);
+	if (stock_frames > 0)
+	{
+		//get space
+		int ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
+		while(ret != stock_frames)
+			ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+
+		//FILL RING
+		for (int i = 0; i < stock_frames; ++i)
+			xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
+		
+		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
+	}
+
+	//process packets
+	for (int i = 0; i < recvd; ++i)
+	{
+		//get addr、len from rx ring
+		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
+		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
+		
+		if(!process_packet(xsk, addr, len))		//drop directly
+		{
+			//free umem
+			assert(xsk->umem_frame_free < NUM_FRAMES);
+			xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
+		}
+	}
+
+	//release socket's rx
+	xsk_ring_cons__release(&xsk->rx, recvd);	
+	//update the xsk's rx packet number
+	xsk->rx_npkts += recvd;
+
+	/* Do we need to wake up the kernel for transmission */
+	complete_tx(xsk);
 }
 
 //forward
 static void l2fwd_all(){
 	printf("----l2fwd_all----\n");
+	for (int i = 0; i < xsk_index; ++i)
+	{
+		fds[i].fd = xsk_socket__fd(xsk[i]->xsk);
+		fds[i].events = POLLIN | POLLOUT;
+	}
 
+	while(1){
+		if (opt_poll)
+		{
+			int ret = poll(fds, xsk_index, opt_timeout);
+			if (ret <= 0)
+				continue;
+		}
+
+		for (int i = 0; i < xsk_index; ++i)
+			l2fwd(xsks[i], fds);
+	}
 }
 
 int main(int argc, char **argv)
