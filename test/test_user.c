@@ -572,26 +572,17 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 		return;
 	}
 
-	 /* Stuff the ring with as much frames as possible */
-	unsigned int stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
-					xsk_umem_free_frames(xsk));
-
-	printf("stock_frames=%d\n", stock_frames);
-	if (stock_frames > 0)
-	{
-		//if recv, then reserve space(recvd data's) in umem
+	//if recv, then reserve space(recvd data's) in umem
+	ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+	printf("ret=%d\n", ret);
+	while(ret != recvd){
+		if (ret < 0)
+			exit_with_error(-ret);
+		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
+			ret = poll(fds, xsk_index, opt_timeout);
 		ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
-		printf("ret=%d\n", ret);
-
-		while(ret != stock_frames)
-			ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
-		
-		for (i = 0; i < stock_frames; i++)
-			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
-
-		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);	
 	}
-
+	printf("recvd=%d, ret=%d\n", recvd, ret);
 	//get the recved data
 	for (int i = 0; i < recvd; ++i)
 	{
@@ -637,7 +628,7 @@ static void rx_drop_all(){
 		if (opt_poll)
 		{
 			int ret = poll(fds, xsk_index, opt_timeout);
-			printf("---------ret=%d\n", ret);
+			printf("----xsk_index=%d-----ret=%d\n", xsk_index, ret);
 			if (ret <= 0)
 				continue;
 		}
