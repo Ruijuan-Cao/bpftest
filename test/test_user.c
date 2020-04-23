@@ -783,6 +783,12 @@ static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	struct ethhdr *eth = (struct ethhdr *) pkt;
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
+	//check
+	if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
+		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
+		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
+		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
+			return false;
 
 	char tmp_mac[ETH_ALEN];
 	struct in6_addr tmp_ip;
@@ -801,13 +807,6 @@ static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	csum_replace2(&icmp->icmp6_cksum,
 		htons(ICMPV6_ECHO_REQUEST << 8),
 	    htons(ICMPV6_ECHO_REPLY << 8));
-
-	//check
-	if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
-		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
-		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
-		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
-			return false;
 
 	//send back, reserve tx space
 	u32 tx_idx;
@@ -846,52 +845,6 @@ static void complete_tx(struct xsk_socket_info *xsk)
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
 	}
 }
-//recv, then send
-static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
-{
-	u32 idx_rx = 0, idx_fq = 0;
-
-	//recv
-	int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
-	if (!recvd)
-		return;
-
-	//Stuff the ring with as much frames as possible 
-	int stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk->umem_frame_free);
-	if (stock_frames > 0)
-	{
-		//get space
-		int ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
-		while(ret != stock_frames)
-			ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
-
-		//FILL RING
-		for (int i = 0; i < stock_frames; ++i)
-			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
-		
-		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
-	}
-
-	//process packets
-	for (int i = 0; i < recvd; ++i)
-	{
-		//get addr、len from rx ring
-		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
-		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
-		
-		if(!process_packet(xsk, addr, len))		//drop directly
-			xsk_free_umem_frame(xsk, addr);
-	}
-
-	//release socket's rx
-	xsk_ring_cons__release(&xsk->rx, recvd);	
-	//update the xsk's rx packet number
-	xsk->rx_npkts += recvd;
-
-	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk);
-}
-
 static bool process_packet(struct xsk_socket_info *xsk,
 			   uint64_t addr, uint32_t len)
 {
@@ -956,6 +909,52 @@ static bool process_packet(struct xsk_socket_info *xsk,
 	}
 
 	return false;
+}
+
+//recv, then send
+static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
+{
+	u32 idx_rx = 0, idx_fq = 0;
+
+	//recv
+	int recvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
+	if (!recvd)
+		return;
+
+	//Stuff the ring with as much frames as possible 
+	int stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk->umem_frame_free);
+	if (stock_frames > 0)
+	{
+		//get space
+		int ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
+		while(ret != stock_frames)
+			ret = xsk_ring_prod__reserve(&xsk->umem->fq, recvd, &idx_fq);
+
+		//FILL RING
+		for (int i = 0; i < stock_frames; ++i)
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) = xsk_alloc_umem_frame(xsk);
+		
+		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
+	}
+
+	//process packets
+	for (int i = 0; i < recvd; ++i)
+	{
+		//get addr、len from rx ring
+		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
+		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
+		
+		if(!process_packet(xsk, addr, len))		//drop directly
+			xsk_free_umem_frame(xsk, addr);
+	}
+
+	//release socket's rx
+	xsk_ring_cons__release(&xsk->rx, recvd);	
+	//update the xsk's rx packet number
+	xsk->rx_npkts += recvd;
+
+	/* Do we need to wake up the kernel for transmission */
+	complete_tx(xsk);
 }
 
 static void handle_receive_packets(struct xsk_socket_info *xsk)
@@ -1030,8 +1029,11 @@ static void l2fwd_all(){
 			//l2fwd(xsks[i], fds);
 			handle_receive_packets(xsks[i]);
 
-		if (false)
+		if (false){
+			handle_receive_packets(xsks[i]);
+
 			l2fwd(xsks[0],fds);
+		}
 	}
 }
 
