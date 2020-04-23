@@ -893,14 +893,16 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 static void handle_receive_packets(struct xsk_socket_info *xsk)
 {
 	unsigned int rcvd, stock_frames, i;
+	u32 idx_rx, idx_fq;
  	int ret;
 
-	rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &idx_rx);
+	rcvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	if (!rcvd)
 		return;
 
 	printf("get a \n");	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
-					xsk_umem_free_frames(xsk));
+					xsk->umem_frame_free);
+					//xsk_umem_free_frames(xsk));
 
 	if (stock_frames > 0) {
 
@@ -927,11 +929,11 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 		if (!process_packet(xsk, addr, len))
 			xsk_free_umem_frame(xsk, addr);
 
-		xsk->stats.rx_bytes += len;
+		//xsk->stats.rx_bytes += len;
 	}
 
 	xsk_ring_cons__release(&xsk->rx, rcvd);
-	xsk->stats.rx_packets += rcvd;
+	//xsk->stats.rx_packets += rcvd;
 
 	/* Do we need to wake up the kernel for transmission */
 	complete_tx(xsk);
@@ -958,7 +960,10 @@ static void l2fwd_all(){
 
 		for (int i = 0; i < xsk_index; ++i)
 			//l2fwd(xsks[i], fds);
-			handle_receive_packets(xsk[i])
+			handle_receive_packets(xsks[i]);
+
+		if (false)
+			l2fwd(xsks[0],fds);
 	}
 }
 
