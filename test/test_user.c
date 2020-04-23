@@ -1,17 +1,9 @@
-#include <errno.h>
-#include <getopt.h>
 #include <libgen.h>
 #include <linux/bpf.h>
-#include <linux/if_xdp.h>
-#include <sys/mman.h>
 #include <sys/resource.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <stdlib.h>
 
 #include <signal.h>
 #include <locale.h>
-#include <time.h>
 #include <unistd.h> //sleep
 
 #include <net/if.h>
