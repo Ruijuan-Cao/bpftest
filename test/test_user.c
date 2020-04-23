@@ -26,19 +26,18 @@
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
 
-#include <assert.h>
-
 #include "common.h"
 #include "operation.h"
 
 //poller dump_stats with period
-static void *poller()
+static void *poller(void *arg)
 {
-	//(void)arg;
+	(void)arg;
 	while (1){
 		sleep(opt_interval);
 		dump_stats();
 	}
+	return NULL;
 }
 
 //rx drop function

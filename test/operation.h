@@ -5,9 +5,14 @@
 #define OPERATION_H
 
 #include <stdio.h>
+#include <errno.h>
+#include <getopt.h>
+#include <sys/types.h>
+#include <stdlib.h>
 
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
+#include <bpf/bpf.h>
 
 #include "common.h"
 
