@@ -8,7 +8,6 @@
 
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
-#include <bpf/bpf.h>
 
 #include "common.h"
 
@@ -63,10 +62,71 @@ struct xsk_socket_info
 	u64 umem_frame_free;
 };
 
+//sockets
+static int xsk_index = 0;
+struct xsk_socket_info *xsks[MAX_SOCKS];
+
+//get ethert frame
 static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
 {
 	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
 	//return sizeof(pkt_data) - 1;
+}
+
+//usage
+static void usage(const char *prog)
+{
+	const char *str =
+		"  Usage: %s [OPTIONS]\n"
+		"  Options:\n"
+		"  -r, --rxdrop		Discard all incoming packets (default)\n"
+		"  -t, --txonly		Only send packets\n"
+		"  -l, --l2fwd		MAC swap L2 forwarding\n"
+		"  -i, --interface=n	Run on interface n\n"
+		"  -q, --queue=n	Use queue n (default 0)\n"
+		"  -p, --poll		Use poll syscall\n"
+		"  -S, --xdp-skb=n	Use XDP skb-mod\n"
+		"  -N, --xdp-native=n	Enforce XDP native mode\n"
+		"  -n, --interval=n	Specify statistics update interval (default 1 sec).\n"
+		"  -z, --zero-copy      Force zero-copy mode.\n"
+		"  -c, --copy           Force copy mode.\n"
+		"  -m, --no-need-wakeup Turn off use of driver need wakeup flag.\n"
+		"  -f, --frame-size=n   Set the frame size (must be a power of two in aligned mode, default is %d).\n"
+		"  -u, --unaligned	Enable unaligned chunk placement\n"
+		"  -M, --shared-umem	Enable XDP_SHARED_UMEM\n"
+		"  -F, --force		Force loading the XDP prog\n"
+		"\n";
+	fprintf(stderr, str, prog, XSK_UMEM__DEFAULT_FRAME_SIZE);
+	exit(EXIT_FAILURE);
+}
+
+//print bench mark
+static void print_benchmark(bool running)
+{
+	const char *bench_str = "INVALID";
+
+	if (opt_bench == BENCH_RXDROP)
+		bench_str = "rxdrop";
+	else if (opt_bench == BENCH_TXONLY)
+		bench_str = "txonly";
+	else if (opt_bench == BENCH_L2FWD)
+		bench_str = "l2fwd";
+
+	printf("%s:%d %s ", opt_if, opt_queue, bench_str);
+	if (opt_xdp_flags & XDP_FLAGS_SKB_MODE)
+		printf("xdp-skb ");
+	else if (opt_xdp_flags & XDP_FLAGS_DRV_MODE)
+		printf("xdp-drv ");
+	else
+		printf("	");
+
+	if (opt_poll)
+		printf("poll() ");
+
+	if (running) {
+		printf("running...");
+		fflush(stdout);
+	}
 }
 
 //dump(resave) current statistics 
