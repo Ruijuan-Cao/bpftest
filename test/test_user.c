@@ -17,7 +17,8 @@
 #include "common.h"
 #include "operation.h"
 
-static int opt_timeout = 1000;
+int opt_timeout = 1000;
+extern enum benchmark_type opt_bench;
 
 //poller dump_stats with period
 static void *poller(void *arg)
