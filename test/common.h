@@ -59,27 +59,6 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
 }
 
-//option
-static struct option long_options[] = {
-	{"rxdrop", no_argument, 0, 'r'},
-	{"txonly", no_argument, 0, 't'},
-	{"l2fwd", no_argument, 0, 'l'},
-	{"interface", required_argument, 0, 'i'},
-	{"queue", required_argument, 0, 'q'},
-	{"poll", no_argument, 0, 'p'},
-	{"xdp-skb", no_argument, 0, 'S'},
-	{"xdp-native", no_argument, 0, 'N'},
-	{"interval", required_argument, 0, 'n'},
-	{"zero-copy", no_argument, 0, 'z'},
-	{"copy", no_argument, 0, 'c'},
-	{"frame-size", required_argument, 0, 'f'},
-	{"no-need-wakeup", no_argument, 0, 'm'},
-	{"unaligned", no_argument, 0, 'u'},
-	{"shared-umem", no_argument, 0, 'M'},
-	{"force", no_argument, 0, 'F'},
-	{0, 0, 0, 0}
-};
-
 //get current time(secs)
 static unsigned long get_nsecs(void)
 {
