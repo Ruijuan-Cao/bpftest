@@ -3,11 +3,7 @@
 #include <errno.h>
 #include <getopt.h>
 //#include <sys/types.h>
-//#include <stdlib.h>
-
-#include <bpf/libbpf.h>
-#include <bpf/xsk.h>
-#include <bpf/bpf.h>
+#include <stdlib.h>
 
 static void load_xdp_program(char **argv, struct bpf_object **obj)
 {
@@ -196,6 +192,12 @@ static void kick_tx(struct xsk_socket_info *xsk)
 	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY)
 		return;
 	exit_with_error(errno);
+}
+
+static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
+{
+	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
+	//return sizeof(pkt_data) - 1;
 }
 
 static void usage(const char *prog){

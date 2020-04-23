@@ -4,6 +4,12 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
+#include <stdlib.h>
+
+#include <bpf/libbpf.h>
+#include <bpf/xsk.h>
+#include <bpf/bpf.h>
+
 #include "common.h"
 
 static enum benchmark_type opt_bench = BENCH_RXDROP;
@@ -62,11 +68,7 @@ static int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //get ethert frame
-static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
-{
-	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
-	//return sizeof(pkt_data) - 1;
-}
+static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
 
 //input & output
 static void usage(const char *prog);
