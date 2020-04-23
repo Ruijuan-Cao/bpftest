@@ -779,6 +779,34 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	//get packet
 	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
 
+	int ret;
+		uint32_t tx_idx = 0;
+		uint8_t tmp_mac[ETH_ALEN];
+		struct in6_addr tmp_ip;
+		struct ethhdr *eth = (struct ethhdr *) pkt;
+		struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
+		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
+
+		if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
+		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
+		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
+		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
+			return false;
+
+		memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
+		memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
+		memcpy(eth->h_source, tmp_mac, ETH_ALEN);
+
+		memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
+		memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
+		memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
+
+		icmp->icmp6_type = ICMPV6_ECHO_REPLY;
+
+		csum_replace2(&icmp->icmp6_cksum,
+			      htons(ICMPV6_ECHO_REQUEST << 8),
+			      htons(ICMPV6_ECHO_REPLY << 8));
+/*
 	uint32_t tx_idx = 0;
 	uint8_t tmp_mac[ETH_ALEN];
 	struct in6_addr tmp_ip;
@@ -808,7 +836,7 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	csum_replace2(&icmp->icmp6_cksum,
 		htons(ICMPV6_ECHO_REQUEST << 8),
 	    htons(ICMPV6_ECHO_REPLY << 8));
-
+*/
 	//send back, reserve tx space
 	int ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
 	if(ret != 1)
