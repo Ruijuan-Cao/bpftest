@@ -4,6 +4,8 @@ USER_TARGETS := test_user
 BINARY := test
 KERN_OBJ := test_kern.o
 
+INCLUDE_OBJS := operation.o
+
 # tools
 LLC ?= llc
 CLANG ?= clang
@@ -62,9 +64,13 @@ $(KERN_OBJ):$(KERN_OBJ:%.o=%.c)
 		-S -emit-llvm -c $<
 	$(LLC) -march=bpf -filetype=obj -o $@ $(KERN_OBJ:%.o=%.ll)
 
+# include
+$(INCLUDE_OBJS): %.o: %.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 # Userspace program with dynamic(shared) lib
-$(BINARY): %: $(BINARY)_user.c Makefile
-	$(CC) -g $(CFLAGS) -o $(BINARY) $< $(TPROGS_LDLIBS)
+$(BINARY): %: $(BINARY)_user.c Makefile $(INCLUDE_OBJS)
+	$(CC) -g $(CFLAGS) -o $(BINARY) $(INCLUDE_OBJS) $< $(TPROGS_LDLIBS)
 
 # Catchall for the objects
 %.o: %.c
