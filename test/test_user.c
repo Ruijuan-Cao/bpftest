@@ -1,4 +1,3 @@
-#include <libgen.h>
 #include <linux/bpf.h>
 #include <sys/resource.h>
 
@@ -6,20 +5,19 @@
 #include <locale.h>
 #include <unistd.h> //sleep
 
-#include <net/if.h>
-
 #include <pthread.h>
 #include <poll.h>
 
 #include <arpa/inet.h>
 #include <net/if.h>
-#include <linux/if_link.h>
 #include <linux/if_ether.h>
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
 
 #include "common.h"
 #include "operation.h"
+
+static int opt_timeout = 1000;
 
 //poller dump_stats with period
 static void *poller(void *arg)
