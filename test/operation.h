@@ -15,13 +15,13 @@
 #include "common.h"
 
 static enum benchmark_type opt_bench = BENCH_RXDROP;
-int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
 
 static bool opt_need_wakeup = true;
 
-int opt_xsks_num = 1;
-int opt_poll;
-int opt_interval = 1;
+static int opt_xsks_num = 1;
+static int opt_poll;
+static int opt_interval = 1;
 
 static unsigned long pre_time;
 
@@ -52,7 +52,7 @@ struct xsk_socket_info
 };
 
 //sockets
-int xsk_index = 0;
+static int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //get ethert frame
