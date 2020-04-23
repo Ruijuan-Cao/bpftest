@@ -779,6 +779,10 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	//get packet
 	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
 
+	uint32_t tx_idx = 0;
+	uint8_t tmp_mac[ETH_ALEN];
+	struct in6_addr tmp_ip;
+
 	//get ipv6 info
 	struct ethhdr *eth = (struct ethhdr *) pkt;
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
@@ -789,9 +793,6 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
 		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
 			return false;
-
-	uint8_t tmp_mac[ETH_ALEN];
-	struct in6_addr tmp_ip;
 
 	//swap dest and source mac
 	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
@@ -809,7 +810,6 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	    htons(ICMPV6_ECHO_REPLY << 8));
 
 	//send back, reserve tx space
-	u32 tx_idx;
 	int ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
 	if(ret != 1)
 		return false;
