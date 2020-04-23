@@ -31,20 +31,14 @@
 #include "common.h"
 #include "operation.h"
 
-//sockets
-static int xsk_index = 0;
-struct xsk_socket_info *xsks[MAX_SOCKS];
-
 //poller dump_stats with period
-static void *poller(void *arg)
+static void *poller()
 {
-	(void)arg;
-	for (;;) {
+	//(void)arg;
+	while (1){
 		sleep(opt_interval);
 		dump_stats();
 	}
-
-	return NULL;
 }
 
 //rx drop function
@@ -57,8 +51,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 
 	//printf("recvd=%d\n", recvd);
 	//if not recv, wakeup the umem, then wait using poll mode
-	if (!recvd)
-	{
+	if (!recvd) {
 		if (xsk_ring_prod__needs_wakeup(&xsk->umem->fq))
 			ret = poll(fds, xsk_index, opt_timeout);
 		return;
@@ -77,8 +70,7 @@ static void rx_drop(struct xsk_socket_info *xsk, struct pollfd *fds){
 	}
 	printf("recvd=%d, ret=%d\n", recvd, ret);
 	//process the recved data
-	for (int i = 0; i < recvd; ++i)
-	{
+	for (int i = 0; i < recvd; ++i){
 		//get addr、len from rx ring
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
@@ -111,15 +103,13 @@ static void rx_drop_all(){
 
 	struct pollfd fds[MAX_SOCKS] = {};
 
-	for (int i = 0; i < xsk_index; ++i)
-	{
+	for (int i = 0; i < xsk_index; ++i){
 		fds[i].fd = xsk_socket__fd(xsks[i]->xsk);
 		fds[i].events = POLLIN;
 	}
 
 	while(1){
-		if (opt_poll)
-		{
+		if (opt_poll){
 			int ret = poll(fds, xsk_index, opt_timeout);
 			if (ret <= 0)
 				continue;
@@ -133,10 +123,8 @@ static void rx_drop_all(){
 static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 {
 	u32 idx;
-	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE)
-	{
-		for (int i = 0; i < BATCH_SIZE; ++i)
-		{
+	if (xsk_ring_prod__reserve(&xsk->tx, BATCH_SIZE, &idx) == BATCH_SIZE){
+		for (int i = 0; i < BATCH_SIZE; ++i){
 			//set the tx ring
 			xsk_ring_prod__tx_desc(&xsk->tx, idx + i)->addr = (frame_nb + i) << XSK_UMEM__DEFAULT_FRAME_SHIFT;
 			xsk_ring_prod__tx_desc(&xsk->tx, idx + i)->len = sizeof(pkt_data) - 1;
@@ -159,8 +147,7 @@ static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 
 	//get complete
 	int complete = xsk_ring_cons__peek(&xsk->umem->cq, BATCH_SIZE, &idx);
-	if (complete > 0)
-	{
+	if (complete > 0){
 		xsk_ring_cons__release(&xsk->umem->cq, complete);
 		xsk->outstanding_tx -= complete;
 		xsk->tx_npkts += complete;
@@ -173,19 +160,16 @@ static void tx_only_all(){
 
 	struct pollfd fds[MAX_SOCKS] = {};
 	u32 frame_nb[MAX_SOCKS] = {};
-	int ret;
 
 	//why only 0
-	for (int i = 0; i < xsk_index; ++i)
-	{
+	for (int i = 0; i < xsk_index; ++i){
 		fds[0].fd = xsk_socket__fd(xsks[i]->xsk);
 		fds[0].events = POLLOUT;
 	}
 
 	while(1){
-		if (opt_poll)
-		{
-			ret = poll(fds, xsk_index, opt_timeout);
+		if (opt_poll){
+			int ret = poll(fds, xsk_index, opt_timeout);
 			if (ret <= 0)
 				continue;
 			if (!(fds[0].revents & POLLOUT))
@@ -193,9 +177,7 @@ static void tx_only_all(){
 		}
 
 		for (int i = 0; i < xsk_index; ++i)
-		{
 			tx_only(xsks[i], frame_nb[i]);
-		}
 	}
 }
 
@@ -264,8 +246,7 @@ static void complete_tx(struct xsk_socket_info *xsk)
 
 	//get completed
 	int completed = xsk_ring_cons__peek(&xsk->umem->cq, XSK_RING_CONS__DEFAULT_NUM_DESCS, &idx_cq);
-	if (completed > 0)
-	{
+	if (completed > 0){
 		for (int i = 0; i < completed; i++)
 			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,idx_cq++));
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
@@ -284,8 +265,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 
 	//Stuff the ring with as much frames as possible 
 	int stock_frames = xsk_prod_nb_free(&xsk->umem->fq, xsk->umem_frame_free);
-	if (stock_frames > 0)
-	{
+	if (stock_frames > 0){
 		//get space
 		int ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames, &idx_fq);
 		while(ret != stock_frames)
@@ -299,8 +279,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	}
 
 	//process packets
-	for (int i = 0; i < recvd; ++i)
-	{
+	for (int i = 0; i < recvd; ++i){
 		//get addr、len from rx ring
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
@@ -324,15 +303,13 @@ static void l2fwd_all(){
 
 	struct pollfd fds[MAX_SOCKS] = {};
 
-	for (int i = 0; i < xsk_index; ++i)
-	{
+	for (int i = 0; i < xsk_index; ++i){
 		fds[i].fd = xsk_socket__fd(xsks[i]->xsk);
 		fds[i].events = POLLIN | POLLOUT;
 	}
 
 	while(1){
-		if (opt_poll)
-		{
+		if (opt_poll){
 			int ret = poll(fds, xsk_index, opt_timeout);
 			if (ret <= 0)
 				continue;
@@ -340,7 +317,6 @@ static void l2fwd_all(){
 
 		for (int i = 0; i < xsk_index; ++i)
 			l2fwd(xsks[i], fds);
-
 	}
 }
 
@@ -407,6 +383,4 @@ int main(int argc, char **argv)
 		l2fwd_all();
 
 	return 0;
-
 }
-
