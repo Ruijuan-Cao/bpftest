@@ -37,7 +37,7 @@ HOSTCFLAGS += -Wno-tautological-compare
 HOSTCFLAGS += -Wno-unknown-warning-option
 HOSTCFLAGS += -Wno-address-of-packed-member
 
-CFLAGS := -O2 -Wall -Werror
+CFLAGS := -O2 -Wall -Werror -Wno-unused-function
 CFLAGS += -I$(KERNEL)usr/include
 CFLAGS += -I$(KERNEL)tools/include
 CFLAGS += -I$(KERNEL)tools/lib
