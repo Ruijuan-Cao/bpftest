@@ -774,15 +774,10 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 }
 
 //process_packet, then echo IPv6 ICMP
-static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
+static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uint32_t len)
 {
 	//get packet
-	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
-
-	int ret;
-	uint32_t tx_idx = 0;
-	uint8_t tmp_mac[ETH_ALEN];
-	struct in6_addr tmp_ip;
+	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);	
 
 	//get ipv6 info
 	struct ethhdr *eth = (struct ethhdr *) pkt;
@@ -796,21 +791,25 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 			return false;
 
 	//swap dest and source mac
+	char tmp_mac[ETH_ALEN];
 	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
 	memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
 	memcpy(eth->h_source, tmp_mac, ETH_ALEN);
 
 	//swap ip
+	struct in6_addr tmp_ip;
 	memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
 	memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
 	memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
 
-	icmp->icmp6_type = ICMPV6_ECHO_REQUEST;
+	icmp->icmp6_type = ICMPV6_ECHO_REPLY;
 	csum_replace2(&icmp->icmp6_cksum,
 		htons(ICMPV6_ECHO_REQUEST << 8),
 	    htons(ICMPV6_ECHO_REPLY << 8));
 
 	//send back, reserve tx space
+	u32 tx_idx = 0; 
+	int ret = 0;
 	ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
 	if(ret != 1)
 		return false;
@@ -846,71 +845,6 @@ static void complete_tx(struct xsk_socket_info *xsk)
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
 	}
 }
-static bool process_packet(struct xsk_socket_info *xsk,
-			   uint64_t addr, uint32_t len)
-{
-	uint8_t *pkt = xsk_umem__get_data(xsk->umem->area, addr);
-
-        /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
-	 *
-	 * Some assumptions to make it easier:
-	 * - No VLAN handling
-	 * - Only if nexthdr is ICMP
-	 * - Just return all data with MAC/IP swapped, and type set to
-	 *   ICMPV6_ECHO_REPLY
-	 * - Recalculate the icmp checksum */
-
-	if (true) {
-		int ret;
-		uint32_t tx_idx = 0;
-		uint8_t tmp_mac[ETH_ALEN];
-		struct in6_addr tmp_ip;
-		struct ethhdr *eth = (struct ethhdr *) pkt;
-		struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
-		struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
-
-		if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
-		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
-		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
-		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
-			return false;
-
-		memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
-		memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
-		memcpy(eth->h_source, tmp_mac, ETH_ALEN);
-
-		memcpy(&tmp_ip, &ipv6->saddr, sizeof(tmp_ip));
-		memcpy(&ipv6->saddr, &ipv6->daddr, sizeof(tmp_ip));
-		memcpy(&ipv6->daddr, &tmp_ip, sizeof(tmp_ip));
-
-		icmp->icmp6_type = ICMPV6_ECHO_REPLY;
-
-		csum_replace2(&icmp->icmp6_cksum,
-			      htons(ICMPV6_ECHO_REQUEST << 8),
-			      htons(ICMPV6_ECHO_REPLY << 8));
-
-		/* Here we sent the packet out of the receive port. Note that
-		 * we allocate one entry and schedule it. Your design would be
-		 * faster if you do batch processing/transmission */
-
-		ret = xsk_ring_prod__reserve(&xsk->tx, 1, &tx_idx);
-		if (ret != 1) {
-			/* No more transmit slots, drop the packet */
-			return false;
-		}
-
-		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->addr = addr;
-		xsk_ring_prod__tx_desc(&xsk->tx, tx_idx)->len = len;
-		xsk_ring_prod__submit(&xsk->tx, 1);
-		xsk->outstanding_tx++;
-
-		//xsk->stats.tx_bytes += len;
-		//xsk->stats.tx_packets++;
-		return true;
-	}
-
-	return false;
-}
 
 //recv, then send
 static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
@@ -944,12 +878,6 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		//get addr、len from rx ring
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
-		
-		if (false)
-		{
-			process_packet(xsk, addr, len);
-			process_packet_l2fwd(xsk, addr, len);
-		}
 
 		if(!process_packet(xsk, addr, len))		//drop directly
 			xsk_free_umem_frame(xsk, addr);
@@ -960,64 +888,10 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	//update the xsk's rx packet number
 	xsk->rx_npkts += recvd;
 
-	/* Do we need to wake up the kernel for transmission */
+	//Do we need to wake up the kernel for transmission 
 	complete_tx(xsk);
 }
 
-static void handle_receive_packets(struct xsk_socket_info *xsk)
-{
-	unsigned int rcvd, stock_frames, i;
-	u32 idx_rx, idx_fq;
- 	int ret;
-
-	rcvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
-	if (!rcvd)
-		return;
-
-	printf("get a \n");	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
-					xsk->umem_frame_free);
-					//xsk_umem_free_frames(xsk));
-
-	if (stock_frames > 0) {
-
-		ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames,
-					     &idx_fq);
-
-		/* This should not happen, but just in case */
-		while (ret != stock_frames)
-			ret = xsk_ring_prod__reserve(&xsk->umem->fq, rcvd,
-						     &idx_fq);
-
-		for (i = 0; i < stock_frames; i++)
-			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
-				xsk_alloc_umem_frame(xsk);
-
-		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
-	}
-
-	/* Process received packets */
-	for (i = 0; i < rcvd; i++) {
-		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
-		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
-
-		if (false)
-		{
-			process_packet(xsk, addr, len);
-			process_packet_l2fwd(xsk, addr, len);
-		}
-
-		if (!process_packet(xsk, addr, len))
-			xsk_free_umem_frame(xsk, addr);
-
-		//xsk->stats.rx_bytes += len;
-	}
-
-	xsk_ring_cons__release(&xsk->rx, rcvd);
-	//xsk->stats.rx_packets += rcvd;
-
-	/* Do we need to wake up the kernel for transmission */
-	complete_tx(xsk);
-  }
 //forward
 static void l2fwd_all(){
 	printf("----l2fwd_all----\n");
@@ -1039,14 +913,8 @@ static void l2fwd_all(){
 		}
 
 		for (int i = 0; i < xsk_index; ++i)
-			//l2fwd(xsks[i], fds);
-			handle_receive_packets(xsks[i]);
+			l2fwd(xsks[i], fds);
 
-		if (false){
-			handle_receive_packets(xsks[0]);
-
-			l2fwd(xsks[0],fds);
-		}
 	}
 }
 
