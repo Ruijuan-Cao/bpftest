@@ -944,7 +944,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 		
-		if(!process_packet_l2fwd(xsk, addr, len))		//drop directly
+		if(!process_packet(xsk, addr, len))		//drop directly
 			xsk_free_umem_frame(xsk, addr);
 	}
 
@@ -993,7 +993,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
-		if (!process_packet(xsk, addr, len))
+		if (!process_packet_l2fwd(xsk, addr, len))
 			xsk_free_umem_frame(xsk, addr);
 
 		//xsk->stats.rx_bytes += len;
