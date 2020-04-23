@@ -56,36 +56,36 @@ static int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //get ethert frame
-static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
+void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
 
 //input & output
-static void usage(const char *prog);
-static void print_benchmark(bool running);
-static void dump_stats();	//dump current statistics 
-static void parse_command_line(int argc, char **argv);
+void usage(const char *prog);
+void print_benchmark(bool running);
+void dump_stats();	//dump current statistics 
+void parse_command_line(int argc, char **argv);
 
 //exit
-static void __exit_with_error(int error, const char *file, const char *func, int line);
+void __exit_with_error(int error, const char *file, const char *func, int line);
 #define exit_with_error(error) __exit_with_error(error, __FILE__, __func__, __LINE__)
-static void normal_exit(int sig);
+void normal_exit(int sig);
 
 //xdp program
-static void load_xdp_program(char **argv, struct bpf_object **obj);
-static void remove_xdp_program();
+void load_xdp_program(char **argv, struct bpf_object **obj);
+void remove_xdp_program();
 
 //xsk configure umem
 static struct xsk_umem_info *xsk_configure_umem();
-static void xsk_populate_fill_ring(struct xsk_umem_info *umem);
+void xsk_populate_fill_ring(struct xsk_umem_info *umem);
 static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk);
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame);
+void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame);
 
 //config & create socket
 static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx);
 
 //configure bpf map
-static void configure_bpf_map(struct bpf_object *bpf_obj);
+void configure_bpf_map(struct bpf_object *bpf_obj);
 
 //kick_tx, keep wake
-static void kick_tx(struct xsk_socket_info *xsk);
+void kick_tx(struct xsk_socket_info *xsk);
 
 #endif //OPERATION_H
