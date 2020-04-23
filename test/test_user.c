@@ -774,7 +774,6 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 }
 
 //process_packet, then echo IPv6 ICMP
-/*
 static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 {
 	//get packet
@@ -825,7 +824,7 @@ static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	xsk->tx_npkts++;
 	return true;
 }
-*/
+
 static void complete_tx(struct xsk_socket_info *xsk)
 {
 	//complete tx process
@@ -896,7 +895,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 static bool process_packet(struct xsk_socket_info *xsk,
 			   uint64_t addr, uint32_t len)
 {
-	uint8_t *pkt = xsk_umem__get_data(xsk->umem->buffer, addr);
+	uint8_t *pkt = xsk_umem__get_data(xsk->umem->area, addr);
 
         /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
 	 *
