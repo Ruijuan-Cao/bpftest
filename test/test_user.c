@@ -824,7 +824,31 @@ static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 	xsk->tx_npkts++;
 	return true;
 }
+static void complete_tx(struct xsk_socket_info *xsk)
+{
+	unsigned int completed;
+	uint32_t idx_cq;
 
+	if (!xsk->outstanding_tx)
+		return;
+
+	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+
+
+	/* Collect/free completed TX buffers */
+	completed = xsk_ring_cons__peek(&xsk->umem->cq,
+					XSK_RING_CONS__DEFAULT_NUM_DESCS,
+					&idx_cq);
+
+	if (completed > 0) {
+		for (int i = 0; i < completed; i++)
+			xsk_free_umem_frame(xsk,
+					    *xsk_ring_cons__comp_addr(&xsk->umem->cq,
+								      idx_cq++));
+
+		xsk_ring_cons__release(&xsk->umem->cq, completed);
+	}
+}
 //recv, then send
 static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 {
@@ -868,8 +892,8 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	xsk->rx_npkts += recvd;
 
 	/* Do we need to wake up the kernel for transmission */
-	//complete_tx(xsk);
-
+	complete_tx(xsk);
+/*
 	//complete tx process
 	u32 idx_cq = 0;
 	//tx
@@ -888,7 +912,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,idx_cq++));
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
 	}
-	
+*/	
 }
 
 //forward
