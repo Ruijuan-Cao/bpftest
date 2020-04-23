@@ -20,7 +20,6 @@ static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 static int opt_mmap_flags = 0;
 static int opt_unaligned_chunks;
 
-static int opt_timeout = 1000;
 static bool opt_need_wakeup = true;
 
 static u32 opt_xdp_bind_flags;
