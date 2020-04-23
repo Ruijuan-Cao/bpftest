@@ -6,6 +6,19 @@
 #include <sys/socket.h>
 #include <linux/if_xdp.h>
 
+static const char *opt_if = "";
+static int opt_ifindex;
+static int opt_queue;
+
+static int opt_unaligned_chunks;
+static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
+static int opt_mmap_flags = 0;
+
+static u32 opt_xdp_bind_flags;
+static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+
+static u32 prog_id;
+
 static void load_xdp_program(char **argv, struct bpf_object **obj)
 {
 	printf("----load xdp program----\n");
@@ -252,6 +265,27 @@ static void print_benchmark(bool running){
 		fflush(stdout);
 	}
 }
+
+//option
+static struct option long_options[] = {
+	{"rxdrop", no_argument, 0, 'r'},
+	{"txonly", no_argument, 0, 't'},
+	{"l2fwd", no_argument, 0, 'l'},
+	{"interface", required_argument, 0, 'i'},
+	{"queue", required_argument, 0, 'q'},
+	{"poll", no_argument, 0, 'p'},
+	{"xdp-skb", no_argument, 0, 'S'},
+	{"xdp-native", no_argument, 0, 'N'},
+	{"interval", required_argument, 0, 'n'},
+	{"zero-copy", no_argument, 0, 'z'},
+	{"copy", no_argument, 0, 'c'},
+	{"frame-size", required_argument, 0, 'f'},
+	{"no-need-wakeup", no_argument, 0, 'm'},
+	{"unaligned", no_argument, 0, 'u'},
+	{"shared-umem", no_argument, 0, 'M'},
+	{"force", no_argument, 0, 'F'},
+	{0, 0, 0, 0}
+};
 static void parse_command_line(int argc, char **argv)
 {
 	int option_index, c;

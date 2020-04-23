@@ -16,25 +16,12 @@
 
 static enum benchmark_type opt_bench = BENCH_RXDROP;
 static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
-static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
-static int opt_mmap_flags = 0;
-static int opt_unaligned_chunks;
 
 static bool opt_need_wakeup = true;
-
-static u32 opt_xdp_bind_flags;
 
 static int opt_xsks_num = 1;
 static int opt_poll;
 static int opt_interval = 1;
-
-static const char *opt_if = "";
-static int opt_ifindex;
-static int opt_queue;
-
-static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
-
-static u32 prog_id;
 
 static unsigned long pre_time;
 
