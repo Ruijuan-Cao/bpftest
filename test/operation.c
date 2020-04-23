@@ -1,5 +1,6 @@
 #include "operation.h"
 
+#include <libgen.h>
 #include <net/if.h>
 #include <sys/types.h>
 #include <sys/socket.h>
