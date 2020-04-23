@@ -6,7 +6,22 @@
 #include <sys/socket.h>
 #include <linux/if_xdp.h>
 
-static const char *opt_if = "";
+enum benchmark_type opt_bench = BENCH_RXDROP;
+int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+
+bool opt_need_wakeup = true;
+
+int opt_xsks_num = 1;
+int opt_poll;
+int opt_interval = 1;
+
+unsigned long pre_time;
+
+int xsk_index = 0;
+struct xsk_socket_info *xsks[MAX_SOCKS];
+
+
+const char *opt_if = "";
 int opt_ifindex;
 int opt_queue;
 

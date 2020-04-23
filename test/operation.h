@@ -14,16 +14,16 @@
 
 #include "common.h"
 
-static enum benchmark_type opt_bench = BENCH_RXDROP;
-static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+extern enum benchmark_type opt_bench;
+extern int opt_xsk_frame_size;
 
-static bool opt_need_wakeup = true;
+extern bool opt_need_wakeup;
 
-static int opt_xsks_num = 1;
-static int opt_poll;
-static int opt_interval = 1;
+extern int opt_xsks_num;
+extern int opt_poll;
+extern int opt_interval;
 
-static unsigned long pre_time;
+extern unsigned long pre_time;
 
 //xsk umem info including FILL&COMPLETE ring
 struct xsk_umem_info
@@ -52,8 +52,8 @@ struct xsk_socket_info
 };
 
 //sockets
-static int xsk_index = 0;
-struct xsk_socket_info *xsks[MAX_SOCKS];
+extern int xsk_index;
+extern struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //get ethert frame
 void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
