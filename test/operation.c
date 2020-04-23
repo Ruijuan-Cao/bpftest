@@ -1,8 +1,9 @@
 #include "operation.h"
 
 #include <errno.h>
-#include <getopt.h>
-//#include <sys/types.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <linux/if_xdp.h>
 
 static void load_xdp_program(char **argv, struct bpf_object **obj)
 {

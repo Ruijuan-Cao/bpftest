@@ -2,6 +2,8 @@
 #define COMMON_H
 
 #include <stdio.h>
+#include <getopt.h>
+#include <sys/mman.h>
 
 //exit type
 #define EXIT_OK 		 0 /* == EXIT_SUCCESS (stdlib.h) man exit(3) */
