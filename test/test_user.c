@@ -790,7 +790,7 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
 			return false;
 
-	char tmp_mac[ETH_ALEN];
+	uint8_t tmp_mac[ETH_ALEN];
 	struct in6_addr tmp_ip;
 
 	//swap dest and source mac
