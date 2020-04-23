@@ -826,26 +826,22 @@ static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
 }
 static void complete_tx(struct xsk_socket_info *xsk)
 {
-	unsigned int completed;
-	uint32_t idx_cq;
-
+	//complete tx process
+	u32 idx_cq = 0;
+	//tx
 	if (!xsk->outstanding_tx)
 		return;
 
-	sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
+	//wakeup tx
+	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
+		kick_tx(xsk);
 
-
-	/* Collect/free completed TX buffers */
-	completed = xsk_ring_cons__peek(&xsk->umem->cq,
-					XSK_RING_CONS__DEFAULT_NUM_DESCS,
-					&idx_cq);
-
-	if (completed > 0) {
+	//get completed
+	int completed = xsk_ring_cons__peek(&xsk->umem->cq, XSK_RING_CONS__DEFAULT_NUM_DESCS, &idx_cq);
+	if (completed > 0)
+	{
 		for (int i = 0; i < completed; i++)
-			xsk_free_umem_frame(xsk,
-					    *xsk_ring_cons__comp_addr(&xsk->umem->cq,
-								      idx_cq++));
-
+			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,idx_cq++));
 		xsk_ring_cons__release(&xsk->umem->cq, completed);
 	}
 }
@@ -893,28 +889,53 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 
 	/* Do we need to wake up the kernel for transmission */
 	complete_tx(xsk);
-/*
-	//complete tx process
-	u32 idx_cq = 0;
-	//tx
-	if (!xsk->outstanding_tx)
+}
+static void handle_receive_packets(struct xsk_socket_info *xsk)
+{
+	unsigned int rcvd, stock_frames, i;
+ 	int ret;
+
+	rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &idx_rx);
+	if (!rcvd)
 		return;
 
-	//wakeup tx
-	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
-		kick_tx(xsk);
+	printf("get a \n");	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
+					xsk_umem_free_frames(xsk));
 
-	//get completed
-	int completed = xsk_ring_cons__peek(&xsk->umem->cq, XSK_RING_CONS__DEFAULT_NUM_DESCS, &idx_cq);
-	if (completed > 0)
-	{
-		for (int i = 0; i < completed; i++)
-			xsk_free_umem_frame(xsk, *xsk_ring_cons__comp_addr(&xsk->umem->cq,idx_cq++));
-		xsk_ring_cons__release(&xsk->umem->cq, completed);
+	if (stock_frames > 0) {
+
+		ret = xsk_ring_prod__reserve(&xsk->umem->fq, stock_frames,
+					     &idx_fq);
+
+		/* This should not happen, but just in case */
+		while (ret != stock_frames)
+			ret = xsk_ring_prod__reserve(&xsk->umem->fq, rcvd,
+						     &idx_fq);
+
+		for (i = 0; i < stock_frames; i++)
+			*xsk_ring_prod__fill_addr(&xsk->umem->fq, idx_fq++) =
+				xsk_alloc_umem_frame(xsk);
+
+		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
 	}
-*/	
-}
 
+	/* Process received packets */
+	for (i = 0; i < rcvd; i++) {
+		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
+		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
+
+		if (!process_packet(xsk, addr, len))
+			xsk_free_umem_frame(xsk, addr);
+
+		xsk->stats.rx_bytes += len;
+	}
+
+	xsk_ring_cons__release(&xsk->rx, rcvd);
+	xsk->stats.rx_packets += rcvd;
+
+	/* Do we need to wake up the kernel for transmission */
+	complete_tx(xsk);
+  }
 //forward
 static void l2fwd_all(){
 	printf("----l2fwd_all----\n");
@@ -936,7 +957,8 @@ static void l2fwd_all(){
 		}
 
 		for (int i = 0; i < xsk_index; ++i)
-			l2fwd(xsks[i], fds);
+			//l2fwd(xsks[i], fds);
+			handle_receive_packets(xsk[i])
 	}
 }
 
