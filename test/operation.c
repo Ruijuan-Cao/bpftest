@@ -7,12 +7,12 @@
 #include <linux/if_xdp.h>
 
 static const char *opt_if = "";
-static int opt_ifindex;
-static int opt_queue;
+int opt_ifindex;
+int opt_queue;
 
-static int opt_unaligned_chunks;
-static int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
-static int opt_mmap_flags = 0;
+int opt_unaligned_chunks;
+int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
+int opt_mmap_flags = 0;
 
 static u32 opt_xdp_bind_flags;
 static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
@@ -62,7 +62,7 @@ void remove_xdp_program()
 		printf("program on interface changed, not removing\n");
 }
 
-static struct xsk_umem_info *xsk_configure_umem(){
+struct xsk_umem_info *xsk_configure_umem(){
 	printf("----xsk configure umem----\n");
 	//umem config
 	struct xsk_umem_config cfg = {
@@ -110,7 +110,7 @@ void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 			i * opt_xsk_frame_size;
 	xsk_ring_prod__submit(&umem->fq, XSK_RING_PROD__DEFAULT_NUM_DESCS);
 }
-static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
+u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 {
 	uint64_t frame;
 	if (xsk->umem_frame_free == 0)
@@ -127,7 +127,7 @@ void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
 		xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
 
-static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){
+struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){
 	printf("----xsk_configure_socket----\n");
 	//config
 	struct xsk_socket_config cfg;
@@ -267,7 +267,7 @@ void print_benchmark(bool running){
 }
 
 //option
-static struct option long_options[] = {
+struct option long_options[] = {
 	{"rxdrop", no_argument, 0, 'r'},
 	{"txonly", no_argument, 0, 't'},
 	{"l2fwd", no_argument, 0, 'l'},

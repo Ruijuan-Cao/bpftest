@@ -15,13 +15,13 @@
 #include "common.h"
 
 static enum benchmark_type opt_bench = BENCH_RXDROP;
-static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
+int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
 
 static bool opt_need_wakeup = true;
 
-static int opt_xsks_num = 1;
-static int opt_poll;
-static int opt_interval = 1;
+int opt_xsks_num = 1;
+int opt_poll;
+int opt_interval = 1;
 
 static unsigned long pre_time;
 
@@ -52,7 +52,7 @@ struct xsk_socket_info
 };
 
 //sockets
-static int xsk_index = 0;
+int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
 //get ethert frame
@@ -74,13 +74,13 @@ void load_xdp_program(char **argv, struct bpf_object **obj);
 void remove_xdp_program();
 
 //xsk configure umem
-static struct xsk_umem_info *xsk_configure_umem();
+struct xsk_umem_info *xsk_configure_umem();
 void xsk_populate_fill_ring(struct xsk_umem_info *umem);
-static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk);
+u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk);
 void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame);
 
 //config & create socket
-static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx);
+struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx);
 
 //configure bpf map
 void configure_bpf_map(struct bpf_object *bpf_obj);
