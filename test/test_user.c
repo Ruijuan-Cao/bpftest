@@ -879,7 +879,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
-		if(!process_packet(xsk, addr, len))		//drop directly
+		if(!process_packet_l2fwd(xsk, addr, len))		//drop directly
 			xsk_free_umem_frame(xsk, addr);
 	}
 
