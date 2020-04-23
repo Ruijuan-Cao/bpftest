@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <getopt.h>
 //#include <sys/types.h>
-#include <stdlib.h>
 
 static void load_xdp_program(char **argv, struct bpf_object **obj)
 {
