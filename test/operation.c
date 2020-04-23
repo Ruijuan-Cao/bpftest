@@ -19,7 +19,7 @@ static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
 
 static u32 prog_id;
 
-static void load_xdp_program(char **argv, struct bpf_object **obj)
+void load_xdp_program(char **argv, struct bpf_object **obj)
 {
 	printf("----load xdp program----\n");
 	struct bpf_prog_load_attr prog_load_attr = {
@@ -45,7 +45,7 @@ static void load_xdp_program(char **argv, struct bpf_object **obj)
 		exit(EXIT_FAILURE);
 	}
 }
-static void remove_xdp_program()
+void remove_xdp_program()
 {
 	printf("----remove xdp program----\n");
 	u32 curr_prog_id = 0;
@@ -95,7 +95,7 @@ static struct xsk_umem_info *xsk_configure_umem(){
 	 umem->area = umem_area;
 	 return umem;
 }
-static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
+void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 {
 	printf("----xsk xsk_populate_fill_ring----\n");
 	int ret, i;
@@ -121,7 +121,7 @@ static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 	return frame;
 }
 
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
+void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
 {
 	if(xsk->umem_frame_free < FRAME_NUM)
 		xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
@@ -174,7 +174,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, 
 	return xsk; 
 }
 
-static void configure_bpf_map(struct bpf_object *bpf_obj){
+void configure_bpf_map(struct bpf_object *bpf_obj){
 	//bpf map
 	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
 	int pass_map = bpf_map__fd(map);
@@ -198,7 +198,7 @@ static void configure_bpf_map(struct bpf_object *bpf_obj){
 }
 
 //kick_tx, keep wake
-static void kick_tx(struct xsk_socket_info *xsk)
+void kick_tx(struct xsk_socket_info *xsk)
 {
 	int ret;
 
@@ -208,13 +208,13 @@ static void kick_tx(struct xsk_socket_info *xsk)
 	exit_with_error(errno);
 }
 
-static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
+void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
 {
 	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
 	//return sizeof(pkt_data) - 1;
 }
 
-static void usage(const char *prog){
+void usage(const char *prog){
 	const char *str =
 		"  Usage: %s [OPTIONS]\n"
 		"  Options:\n"
@@ -239,7 +239,7 @@ static void usage(const char *prog){
 	exit(EXIT_FAILURE);
 }
 
-static void print_benchmark(bool running){
+void print_benchmark(bool running){
 	const char *bench_str = "INVALID";
 
 	if (opt_bench == BENCH_RXDROP)
@@ -286,7 +286,7 @@ static struct option long_options[] = {
 	{"force", no_argument, 0, 'F'},
 	{0, 0, 0, 0}
 };
-static void parse_command_line(int argc, char **argv)
+void parse_command_line(int argc, char **argv)
 {
 	int option_index, c;
 
@@ -369,7 +369,7 @@ static void parse_command_line(int argc, char **argv)
 	}
 }
 
-static void dump_stats(){
+void dump_stats(){
 	unsigned long now = get_nsecs();
 	long dt = now - pre_time;
 	int i;
@@ -399,7 +399,7 @@ static void dump_stats(){
 	}
 }
 
-static void __exit_with_error(int error, const char *file, const char *func, int line)
+void __exit_with_error(int error, const char *file, const char *func, int line)
 {
 	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
 		line, error, strerror(error));
@@ -408,7 +408,7 @@ static void __exit_with_error(int error, const char *file, const char *func, int
 	exit(EXIT_FAILURE);
 }
 
-static void normal_exit(int sig)
+void normal_exit(int sig)
 {
 	printf("----normal_exit----\n");
 	struct xsk_umem *umem = xsks[0]->umem->umem;
