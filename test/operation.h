@@ -4,7 +4,6 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
-#include <stdio.h>
 #include <errno.h>
 #include <getopt.h>
 #include <sys/types.h>

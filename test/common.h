@@ -1,7 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <bpf/bpf.h>	//XSK_UMEM__DEFAULT_FRAME_SIZE
+#include <stdio.h>
 
 //exit type
 #define EXIT_OK 		 0 /* == EXIT_SUCCESS (stdlib.h) man exit(3) */
@@ -36,6 +36,33 @@ static const char pkt_data[] =
 	"\x00\x2e\x00\x00\x00\x00\x40\x11\x88\x97\x05\x08\x07\x08\xc8\x14"
 	"\x1e\x04\x10\x92\x10\x92\x00\x1a\x6d\xa3\x34\x33\x1f\x69\x40\x6b"
 	"\x54\x59\xb6\x14\x2d\x11\x44\xbf\xaf\xd9\xbe\xaa";
+	
+//usage
+static void usage(const char *prog)
+{
+	const char *str =
+		"  Usage: %s [OPTIONS]\n"
+		"  Options:\n"
+		"  -r, --rxdrop		Discard all incoming packets (default)\n"
+		"  -t, --txonly		Only send packets\n"
+		"  -l, --l2fwd		MAC swap L2 forwarding\n"
+		"  -i, --interface=n	Run on interface n\n"
+		"  -q, --queue=n	Use queue n (default 0)\n"
+		"  -p, --poll		Use poll syscall\n"
+		"  -S, --xdp-skb=n	Use XDP skb-mod\n"
+		"  -N, --xdp-native=n	Enforce XDP native mode\n"
+		"  -n, --interval=n	Specify statistics update interval (default 1 sec).\n"
+		"  -z, --zero-copy      Force zero-copy mode.\n"
+		"  -c, --copy           Force copy mode.\n"
+		"  -m, --no-need-wakeup Turn off use of driver need wakeup flag.\n"
+		"  -f, --frame-size=n   Set the frame size (must be a power of two in aligned mode, default is %d).\n"
+		"  -u, --unaligned	Enable unaligned chunk placement\n"
+		"  -M, --shared-umem	Enable XDP_SHARED_UMEM\n"
+		"  -F, --force		Force loading the XDP prog\n"
+		"\n";
+	fprintf(stderr, str, prog, XSK_UMEM__DEFAULT_FRAME_SIZE);
+	exit(EXIT_FAILURE);
+}
 
 //icmp 
 static inline __sum16 csum16_add(__sum16 csum, __be16 addend)
