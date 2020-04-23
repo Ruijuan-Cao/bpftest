@@ -774,7 +774,7 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 }
 
 //process_packet, then echo IPv6 ICMP
-static bool process_packet(struct xsk_socket_info *xsk, u64 addr, u32 len)
+static bool process_packet_l2fwd(struct xsk_socket_info *xsk, u64 addr, u32 len)
 {
 	//get packet
 	char *pkt = xsk_umem__get_data(xsk->umem->area, addr);
@@ -944,7 +944,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 		u64 addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		u32 len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 		
-		if(!process_packet(xsk, addr, len))		//drop directly
+		if(!process_packet_l2fwd(xsk, addr, len))		//drop directly
 			xsk_free_umem_frame(xsk, addr);
 	}
 
@@ -1030,7 +1030,7 @@ static void l2fwd_all(){
 			handle_receive_packets(xsks[i]);
 
 		if (false){
-			handle_receive_packets(xsks[i]);
+			handle_receive_packets(xsks[0]);
 
 			l2fwd(xsks[0],fds);
 		}
