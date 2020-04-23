@@ -5,6 +5,7 @@
 #define OPERATION_H
 
 #include <stdlib.h>
+#include <errno.h>
 #include <linux/if_link.h>
 
 #include <bpf/libbpf.h>

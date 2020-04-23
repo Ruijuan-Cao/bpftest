@@ -65,7 +65,7 @@ $(KERN_OBJ):$(KERN_OBJ:%.o=%.c)
 	$(LLC) -march=bpf -filetype=obj -o $@ $(KERN_OBJ:%.o=%.ll)
 
 # include
-$(INCLUDE_OBJS): %.o: %.h
+$(INCLUDE_OBJS): operation.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Userspace program with dynamic(shared) lib
