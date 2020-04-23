@@ -4,6 +4,8 @@
 #ifndef OPERATION_H
 #define OPERATION_H
 
+#include <stdio.h>
+
 #include <bpf/libbpf.h>
 #include <bpf/xsk.h>
 #include <bpf/bpf.h>
@@ -60,6 +62,12 @@ struct xsk_socket_info
 	u64 umem_frame_addr[FRAME_NUM];
 	u64 umem_frame_free;
 };
+
+static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
+{
+	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
+	//return sizeof(pkt_data) - 1;
+}
 
 //dump(resave) current statistics 
 static void dump_stats(){
@@ -231,7 +239,6 @@ static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
 	if(xsk->umem_frame_free < FRAME_NUM)
 		xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
-
 
 //config & create socket
 static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){

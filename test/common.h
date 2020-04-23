@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <bpf/bpf.h>	//XSK_UMEM__DEFAULT_FRAME_SIZE
+
 //exit type
 #define EXIT_OK 		 0 /* == EXIT_SUCCESS (stdlib.h) man exit(3) */
 #define EXIT_FAIL		 1 /* == EXIT_FAILURE (stdlib.h) man exit(3) */
@@ -9,7 +11,6 @@
 #define EXIT_FAIL_BPF		40
 
 //size
-
 #ifndef MAX_SOCKS
 #define MAX_SOCKS 4
 #endif
@@ -35,12 +36,6 @@ static const char pkt_data[] =
 	"\x00\x2e\x00\x00\x00\x00\x40\x11\x88\x97\x05\x08\x07\x08\xc8\x14"
 	"\x1e\x04\x10\x92\x10\x92\x00\x1a\x6d\xa3\x34\x33\x1f\x69\x40\x6b"
 	"\x54\x59\xb6\x14\x2d\x11\x44\xbf\xaf\xd9\xbe\xaa";
-
-static void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
-{
-	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
-	//return sizeof(pkt_data) - 1;
-}
 
 //icmp 
 static inline __sum16 csum16_add(__sum16 csum, __be16 addend)

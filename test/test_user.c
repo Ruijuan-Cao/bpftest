@@ -7,7 +7,6 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <signal.h>
@@ -30,144 +29,11 @@
 #include <assert.h>
 
 #include "common.h"
-//#include "operation.h"
-#include "configure.h"
-
-static u32 prog_id;
-
-static unsigned long pre_time;
+#include "operation.h"
 
 //sockets
 static int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
-
-//xsk configure umem
-static struct xsk_umem_info *xsk_configure_umem(){
-	printf("----xsk configure umem----\n");
-	//umem config
-	struct xsk_umem_config cfg = {
-		.fill_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
-		.comp_size = XSK_RING_PROD__DEFAULT_NUM_DESCS,
-		.frame_size = opt_xsk_frame_size,
-		.frame_headroom = XSK_UMEM__DEFAULT_FRAME_HEADROOM,
-		.flags = opt_umem_flags,
-	};
-	//umem calloc
-	struct xsk_umem_info *umem = calloc(1, sizeof(*umem));
-	if (!umem)
-		exit_with_error(errno);
-
-	//umem area, mmap/munmap - map or unmap files or devices into memory
-	void *umem_area = mmap(NULL, FRAME_NUM * opt_xsk_frame_size,
-		    PROT_READ | PROT_WRITE,
-		    MAP_PRIVATE | MAP_ANONYMOUS | opt_mmap_flags, -1, 0);
-	if (umem_area == MAP_FAILED)
-	{
-		printf("mmap failed\n");
-		exit_with_error(errno);		
-	}
-
-	//create umem
-	int ret = xsk_umem__create(&umem->umem, umem_area, FRAME_NUM * opt_xsk_frame_size, &umem->fq, &umem->cq, &cfg);
-	if (ret)
-	 	exit_with_error(ret);
-
-	 umem->area = umem_area;
-	 return umem;
-}
-
-static void xsk_populate_fill_ring(struct xsk_umem_info *umem)
-{
-	printf("----xsk xsk_populate_fill_ring----\n");
-	int ret, i;
-	u32 idx;
-
-	ret = xsk_ring_prod__reserve(&umem->fq,
-				     XSK_RING_PROD__DEFAULT_NUM_DESCS, &idx);
-	if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS)
-		exit_with_error(-ret);
-	for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i++)
-		*xsk_ring_prod__fill_addr(&umem->fq, idx++) =
-			i * opt_xsk_frame_size;
-	xsk_ring_prod__submit(&umem->fq, XSK_RING_PROD__DEFAULT_NUM_DESCS);
-}
-
-//config & create socket
-static struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx, bool tx){
-	printf("----xsk_configure_socket----\n");
-	//config
-	struct xsk_socket_config cfg;
-	struct xsk_socket_info *xsk;
-	struct xsk_ring_prod *txr;
-	struct xsk_ring_cons *rxr;
-
-	//xsk socket
-	xsk = calloc(1, sizeof(*xsk));
-	if (!xsk)
-		exit_with_error(errno);
-	xsk->umem = umem;
-
-	//cfg
-	cfg.rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
-	cfg.tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
-	if (opt_xsks_num > 1)
-		cfg.libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
-	else
-		cfg.libbpf_flags = 0;
-	cfg.xdp_flags = opt_xdp_flags;
-	cfg.bind_flags = opt_xdp_bind_flags;
-
-	//rx-tx
-	rxr = rx ? &xsk->rx : NULL;
-	txr = tx ? &xsk->tx : NULL;
-
-	//crate xsk
-	printf("----opt_if=%s\n", opt_if);
-	int ret = xsk_socket__create(&xsk->xsk, opt_if, opt_queue, umem->umem, rxr, txr, &cfg);
-	printf("ret = %d\n", ret);
-	if(ret)
-		exit_with_error(-ret);
-
-	//get xdp id
-	int xdpid = bpf_get_link_xdp_id(opt_ifindex, &prog_id, opt_xdp_flags);	
-	if(xdpid)
-		exit_with_error(-xdpid);
-
-	/* Initialize umem frame allocation */
-	for (int i = 0; i < FRAME_NUM; i++)
-		xsk->umem_frame_addr[i] = i * opt_xsk_frame_size;
-
-	xsk->umem_frame_free = FRAME_NUM;
-
-	return xsk; 
-}
-
-
-
-//
-static void configure_bpf_map(struct bpf_object *bpf_obj){
-	//bpf map
-	struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "bpf_pass_map");
-	int pass_map = bpf_map__fd(map);
-	if (pass_map < 0)
-	{
-		fprintf(stderr, "%s\n", strerror(pass_map));
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < xsk_index; ++i)
-	{
-		int fd = xsk_socket__fd(xsks[i]->xsk);
-		int key = i;
-		int ret = bpf_map_update_elem(pass_map, &key, &fd, 0);
-		if (ret)
-		{
-			fprintf(stderr, "ERROR: bpf_map_update_elem %d\n", i);
-			exit(EXIT_FAILURE);
-		}
-	}
-}
-
 
 //poller dump_stats with period
 static void *poller(void *arg)
@@ -264,17 +130,6 @@ static void rx_drop_all(){
 	}
 }
 
-//kick_tx, keep wake
-static void kick_tx(struct xsk_socket_info *xsk)
-{
-	int ret;
-
-	ret = sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
-	if (ret >= 0 || errno == ENOBUFS || errno == EAGAIN || errno == EBUSY)
-		return;
-	exit_with_error(errno);
-}
-
 static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 {
 	u32 idx;
@@ -311,6 +166,7 @@ static void tx_only(struct xsk_socket_info *xsk, u32 frame_nb)
 		xsk->tx_npkts += complete;
 	}
 }
+
 //tx only
 static void tx_only_all(){
 	printf("----tx_only_all----\n");
@@ -341,24 +197,6 @@ static void tx_only_all(){
 			tx_only(xsks[i], frame_nb[i]);
 		}
 	}
-}
-
-//
-static u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
-{
-	uint64_t frame;
-	if (xsk->umem_frame_free == 0)
-		return INVALID_UMEM_FRAME;
-
-	frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
-	xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
-	return frame;
-}
-
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
-{
-	if(xsk->umem_frame_free < FRAME_NUM)
-		xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
 
 //process_packet, then echo IPv6 ICMP
