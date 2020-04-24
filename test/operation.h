@@ -70,8 +70,10 @@ void __exit_with_error(int error, const char *file, const char *func, int line);
 void normal_exit(int sig);
 
 //xdp program
-void load_xdp_program(char **argv, struct bpf_object **obj);
-void remove_xdp_program();
+void load_bpf_program(char **argv, struct bpf_object **obj);
+void remove_bpf_program();
+//void attach_bpf_to_xdp(int ifindex, u32 xdp_flags, int prog_id);
+//void detach_bpf_off_xdp(int ifindex, u32 xdp_flags, int prog_id);
 
 //xsk configure umem
 struct xsk_umem_info *xsk_configure_umem();

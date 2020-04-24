@@ -33,6 +33,14 @@ enum benchmark_type {
 	BENCH_L2FWD = 2,
 };
 
+//xdp config
+struct xdp_config{
+	int ifndef;
+	bool do_unload;
+	char filename[512];
+	char progsec[32];
+}
+
 //pkt_data
 static const char pkt_data[] =
 	"\x3c\xfd\xfe\x9e\x7f\x71\xec\xb1\xd7\x98\x3a\xc0\x08\x00\x45\x00"

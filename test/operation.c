@@ -20,7 +20,6 @@ unsigned long pre_time;
 int xsk_index = 0;
 struct xsk_socket_info *xsks[MAX_SOCKS];
 
-
 const char *opt_if = "";
 int opt_ifindex;
 int opt_queue;
@@ -29,16 +28,19 @@ int opt_unaligned_chunks;
 int opt_umem_flags = XSK_UMEM__DEFAULT_FLAGS;
 int opt_mmap_flags = 0;
 
-static u32 opt_xdp_bind_flags;
-static u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+u32 opt_xdp_bind_flags;
+u32 opt_xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+char *opt_progsec;
 
-static u32 prog_id;
+u32 prog_id;
 
-void load_xdp_program(char **argv, struct bpf_object **obj)
-{
+void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
 	printf("----load xdp program----\n");
+
+	//load bpf object
 	struct bpf_prog_load_attr prog_load_attr = {
 		.prog_type      = BPF_PROG_TYPE_XDP,
+		.ifindex 		= opt_ifindex
 	};
 	char xdp_filename[256];
 	int prog_fd;
@@ -46,22 +48,49 @@ void load_xdp_program(char **argv, struct bpf_object **obj)
 	snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
 	prog_load_attr.file = xdp_filename;
 
-	if (bpf_prog_load_xattr(&prog_load_attr, obj, &prog_fd))
-		exit(EXIT_FAILURE);
-	printf("prog_fd = %d\n", prog_fd);
-	if (prog_fd < 0) {
-		fprintf(stderr, "ERROR: no program found: %s\n",
-			strerror(prog_fd));
+	/* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
+	 * loading this into the kernel via bpf-syscall
+	 */
+	if (bpf_prog_load_xattr(&prog_load_attr, bpf_obj, &prog_fd)){
+		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n", xdp_filename, err, strerror(-err));
 		exit(EXIT_FAILURE);
 	}
 
+	/* At this point: All XDP/BPF programs from the cfg->filename have been
+	 * loaded into the kernel, and evaluated by the verifier. Only one of
+	 * these gets attached to XDP hook, the others will get freed once this
+	 * process exit.
+	 */
+	struct bpf_program *bpf_prog;
+	if (!opt_progsec)
+		// find a matching bpf prog by section name
+		bpf_prog = bpf_object__find_program_by_title(*bpf_obj, opt_progsec);
+	else
+		// find the first program
+		bpf_prog = bpf_program__next(NULL, *bpf_obj);
+
+	if (!bpf_prog){
+		fprintf(stderr, "ERR: couldn't find a program in ELF secion '%s'\n", opt_progsec);
+		exit(EXIT_FAIL_BPF);
+	}
+	//get prog fd
+	prog_fd = bpf_program__fd(bpf_prog);
+		if (prog_fd <= 0) {
+		fprintf(stderr, "ERR: bpf_program__fd failed\n");
+		exit(EXIT_FAIL_BPF);
+	}
+
+	/* At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
+	 * is our select file-descriptor handle. Next step is attaching this FD
+	 * to a kernel hook point, in this case XDP net_device link-level hook.
+	 */
 	if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0) {
 		fprintf(stderr, "ERROR: link set xdp fd failed\n");
 		exit(EXIT_FAILURE);
 	}
 }
-void remove_xdp_program()
-{
+
+void remove_bpf_program(){
 	printf("----remove xdp program----\n");
 	u32 curr_prog_id = 0;
 
@@ -75,6 +104,13 @@ void remove_xdp_program()
 		printf("couldn't find a prog id on a given interface\n");
 	else
 		printf("program on interface changed, not removing\n");
+}
+
+void attach_bpf_to_xdp(int ifindex, int prog_id, u32 xdp_flags){
+
+}
+void detach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
+
 }
 
 struct xsk_umem_info *xsk_configure_umem(){
@@ -125,8 +161,7 @@ void xsk_populate_fill_ring(struct xsk_umem_info *umem)
 			i * opt_xsk_frame_size;
 	xsk_ring_prod__submit(&umem->fq, XSK_RING_PROD__DEFAULT_NUM_DESCS);
 }
-u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
-{
+u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk){
 	uint64_t frame;
 	if (xsk->umem_frame_free == 0)
 		return INVALID_UMEM_FRAME;
@@ -136,8 +171,7 @@ u64 xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 	return frame;
 }
 
-void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame)
-{
+void xsk_free_umem_frame(struct xsk_socket_info *xsk, u64 frame){
 	if(xsk->umem_frame_free < FRAME_NUM)
 		xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
@@ -213,8 +247,7 @@ void configure_bpf_map(struct bpf_object *bpf_obj){
 }
 
 //kick_tx, keep wake
-void kick_tx(struct xsk_socket_info *xsk)
-{
+void kick_tx(struct xsk_socket_info *xsk){
 	int ret;
 
 	ret = sendto(xsk_socket__fd(xsk->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0);
@@ -223,8 +256,7 @@ void kick_tx(struct xsk_socket_info *xsk)
 	exit_with_error(errno);
 }
 
-void gen_eth_frame(struct xsk_umem_info *umem, u64 addr)
-{
+void gen_eth_frame(struct xsk_umem_info *umem, u64 addr){
 	memcpy(xsk_umem__get_data(umem->area, addr), pkt_data, sizeof(pkt_data) - 1);
 	//return sizeof(pkt_data) - 1;
 }
@@ -301,8 +333,7 @@ struct option long_options[] = {
 	{"force", no_argument, 0, 'F'},
 	{0, 0, 0, 0}
 };
-void parse_command_line(int argc, char **argv)
-{
+void parse_command_line(int argc, char **argv){
 	int option_index, c;
 
 	for (;;) {
@@ -312,6 +343,9 @@ void parse_command_line(int argc, char **argv)
 			break;
 
 		switch (c) {
+		case 'P':
+			opt_progsec = optarg;
+			break;
 		case 'r':
 			opt_bench = BENCH_RXDROP;
 			break;
@@ -414,8 +448,7 @@ void dump_stats(){
 	}
 }
 
-void __exit_with_error(int error, const char *file, const char *func, int line)
-{
+void __exit_with_error(int error, const char *file, const char *func, int line){
 	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
 		line, error, strerror(error));
 	dump_stats();
@@ -423,8 +456,7 @@ void __exit_with_error(int error, const char *file, const char *func, int line)
 	exit(EXIT_FAILURE);
 }
 
-void normal_exit(int sig)
-{
+void normal_exit(int sig){
 	printf("----normal_exit----\n");
 	struct xsk_umem *umem = xsks[0]->umem->umem;
 	int i;

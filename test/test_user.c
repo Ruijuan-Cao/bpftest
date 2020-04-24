@@ -182,6 +182,8 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 	//check
+	if (ntohs(eth->h_proto) != ETH_P_IPV6)
+		printf("----h_proto=%x, len=%d\n", ntohs(eth->h_proto), len);
 	if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
 		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
 		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
@@ -313,6 +315,12 @@ static void l2fwd_all(){
 int main(int argc, char **argv)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
+	struct xdp_config cfg = {
+		.ifindex = -1,
+		.do_unload = false,
+		.filename = "",
+		.progsec = "xdp_pass"
+	}
 
 	bool rx = false, tx = false;
 	struct bpf_object *bpf_obj;

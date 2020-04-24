@@ -1,5 +1,7 @@
 /* test_kernel, for AF-XDP learning */
 #include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/ipv6.h>
 #include <bpf/bpf_helpers.h>
 
 //define the max action mode of bpf map
@@ -34,12 +36,57 @@ int xdp_pass_func(struct xdp_md *ctx)
 	__u32 key = XDP_PASS;
 	pkt = bpf_map_lookup_elem(&bpf_pass_map, &key);
 	if (!pkt)
-	{
 		return XDP_ABORTED;
-	}
+
 	lock_xadd(&pkt->rx_packets, 1);	
 
 	return XDP_PASS;
+}
+
+//header cursor to track current parsing position
+struct hdr_cursor{
+	void *pos;
+}
+
+//parse ethhdr
+static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+{
+	struct ethhdr *eth = hc->pos;
+	int hdr_size = sizeof(*eth);
+
+	if (hc->pos + 1 > data_end)
+		return -1;
+	
+	//update the header cursor
+	hc->pos += hdr_size;
+	*ethhdr = eth;
+
+	return eth->h_proto;
+}
+
+//filter ipv6
+SEC("xdp_ipv6_pass")
+int xdp_parser_func(struct xdp_md *ctx)
+{
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	//default action
+	//__u32 action = XDP_PASS;
+
+	//start new header cursor postion at data start
+	struct hdr_cursor *hc;
+	hc->pos = data;
+
+	//parse proto
+	struct ethhdr *eth;
+	int proto = parse_ethhdr(hc, data_end, &eth);
+	if(ntohs(proto) != ETH_P_IPV6)
+		return XDP_DROP;
+
+	return XDP_PASS;
+	//read via xdp_stats
+	//return xdp_stats_record_action(ctx, action); 
 }
 
 char _license[] SEC("license") = "GPL";
