@@ -513,22 +513,17 @@ static inline void complete_tx_l2fwd(struct xsk_socket_info *xsk,
 	unsigned int rcvd;
 	size_t ndescs;
 
-	printf("-----1-----\n");
 	if (!xsk->outstanding_tx)
 		return;
 	
-printf("-----2-----\n");
 	if (!opt_need_wakeup || xsk_ring_prod__needs_wakeup(&xsk->tx))
 		kick_tx(xsk);
 	
-	printf("-----3-----\n");
 	ndescs = (xsk->outstanding_tx > BATCH_SIZE) ? BATCH_SIZE :
 		xsk->outstanding_tx;
 
-printf("-----4-----\n");	
 	/* re-add completed Tx buffers */
 	rcvd = xsk_ring_cons__peek(&umem->cq, ndescs, &idx_cq);
-	printf("-----%d-----\n", rcvd);
 	if (rcvd > 0) {
 		unsigned int i;
 		int ret;
@@ -551,7 +546,6 @@ printf("-----4-----\n");
 		xsk->outstanding_tx -= rcvd;
 		xsk->tx_npkts += rcvd;
 	}
-printf("-----666-----\n");
 }
 
 static inline void complete_tx_only(struct xsk_socket_info *xsk)
@@ -689,7 +683,7 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 	u32 idx_rx = 0, idx_tx = 0;
 	int ret;
 	
-	//complete_tx_l2fwd(xsk, fds);
+	complete_tx_l2fwd(xsk, fds);
 	
 	rcvd = xsk_ring_cons__peek(&xsk->rx, BATCH_SIZE, &idx_rx);
 	if (!rcvd) {
@@ -697,7 +691,6 @@ static void l2fwd(struct xsk_socket_info *xsk, struct pollfd *fds)
 			ret = poll(fds, num_socks, opt_timeout);
 		return;
 	}
-		printf("get a packet by l2fwd\n");
 
 	ret = xsk_ring_prod__reserve(&xsk->tx, rcvd, &idx_tx);
 	while (ret != rcvd) {
