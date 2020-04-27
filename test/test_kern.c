@@ -61,7 +61,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	hc->pos += hdr_size;
 	*ethhdr = eth;
 
-	return eth->h_proto;
+	return ntohs(eth->h_proto);
 }
 
 //filter ipv6
