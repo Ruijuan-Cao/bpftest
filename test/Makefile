@@ -29,7 +29,7 @@ LINUXINCLUDE += -I$(KERNEL)tools/lib
 HOSTCFLAGS := -O2 -Wall #-H
 HOSTCFLAGS += -D__KERNEL__ -D__ASM_SYSREG_H -D__BPF_TRACING__
 HOSTCFLAGS += -D__TARGET_ARCH_$(ARCH)
-HOSTCFLAGS += -Werror
+HOSTCFLAGS += -Werror -Wno-unused-function -Wno-unused-variable
 HOSTCFLAGS += -Wno-unused-value -Wno-pointer-sign
 HOSTCFLAGS += -Wno-compare-distinct-pointer-types
 HOSTCFLAGS += -Wno-gnu-variable-sized-type-not-at-end
@@ -37,7 +37,7 @@ HOSTCFLAGS += -Wno-tautological-compare
 HOSTCFLAGS += -Wno-unknown-warning-option
 HOSTCFLAGS += -Wno-address-of-packed-member
 
-CFLAGS := -O2 -Wall -Werror -Wno-unused-function
+CFLAGS := -O2 -Wall -Werror -Wno-unused-function -Wno-unused-variable
 CFLAGS += -I$(KERNEL)usr/include
 CFLAGS += -I$(KERNEL)tools/include
 CFLAGS += -I$(KERNEL)tools/lib
