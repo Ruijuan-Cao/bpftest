@@ -123,7 +123,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//__u32 action = XDP_PASS;
 
 	//start new header cursor postion at data start
-	struct hdr_cursor *hc;
+	struct hdr_cursor *hc = 0;
 	hc->pos = data;
 
 	//parse proto
