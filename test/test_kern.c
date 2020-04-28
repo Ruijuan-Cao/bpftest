@@ -44,8 +44,6 @@ struct datarec {
 	/* Assignment#1: Add byte counters */
 };
 
-/*
-
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
@@ -59,7 +57,6 @@ int xdp_pass_func(struct xdp_md *ctx)
 
 	return XDP_PASS;
 }
-*/
 
 //header cursor to track current parsing position
 struct hdr_cursor{
@@ -122,18 +119,15 @@ int xdp_parser_func(struct xdp_md *ctx)
 	void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 
-	//default action
-	//__u32 action = XDP_PASS;
-
 	//start new header cursor postion at data start
 	struct hdr_cursor *hc = 0;
 	hc->pos = data;
 
 	//parse proto
-	struct ethhdr *eth;
-	int proto = parse_ethhdr(hc, data_end, &eth);
-	if(bpf_htons(proto) != ETH_P_IPV6)
-		return XDP_DROP;
+	// struct ethhdr *eth;
+	// int proto = parse_ethhdr(hc, data_end, &eth);
+	// if(bpf_htons(proto) != ETH_P_IPV6)
+	// 	return XDP_DROP;
 
 	return XDP_PASS;
 	//read via xdp_stats
