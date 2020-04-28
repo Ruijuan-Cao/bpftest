@@ -3,12 +3,26 @@
 #include <linux/if_ether.h>
 #include <linux/if_vlan.h>
 #include <linux/ipv6.h>
+
 #include <bpf/bpf_helpers.h>
+#include <bpf/bpf_endian.h>
 
 //define the max action mode of bpf map
 #ifndef XDP_ACTION_MAX
 #define XDP_ACTION_MAX XDP_REDIRECT + 1
 #endif
+
+/* Allow users of header file to redefine VLAN max depth */
+#ifndef VLAN_MAX_DEPTH
+#define VLAN_MAX_DEPTH 4
+#endif
+
+static __always_inline int proto_is_vlan(__u16 h_proto)
+{
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
+}
+
 
 //map for count the passed packet
 struct bpf_map_def SEC("maps") bpf_pass_map =
@@ -47,10 +61,21 @@ int xdp_pass_func(struct xdp_md *ctx)
 //header cursor to track current parsing position
 struct hdr_cursor{
 	void *pos;
-}
+};
+
+/*
+ *	struct vlan_hdr - vlan header
+ *	@h_vlan_TCI: priority and VLAN ID
+ *	@h_vlan_encapsulated_proto: packet type ID or len
+ */
+struct vlan_hdr {
+	__be16	h_vlan_TCI;
+	__be16	h_vlan_encapsulated_proto;
+};
+
 
 //parse ethhdr
-static int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = hc->pos;
 	int hdr_size = sizeof(*eth);
@@ -104,7 +129,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//parse proto
 	struct ethhdr *eth;
 	int proto = parse_ethhdr(hc, data_end, &eth);
-	if(ntohs(proto) != ETH_P_IPV6)
+	if(bpf_htons(proto) != ETH_P_IPV6)
 		return XDP_DROP;
 
 	return XDP_PASS;
