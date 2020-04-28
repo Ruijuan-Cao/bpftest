@@ -149,7 +149,7 @@ int attach_bpf_off_xdp(int ifindex, u32 xdp_flags, int prog_fd){
 
 	return EXIT_OK;
 }
-int detach_bpf_to_xdp(int ifindex, u32 xdp_flags){
+int detach_bpf_off_xdp(int ifindex, u32 xdp_flags){
 	int err;
 	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
 		fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",

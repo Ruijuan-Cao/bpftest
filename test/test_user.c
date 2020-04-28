@@ -337,7 +337,7 @@ int main(int argc, char **argv)
 
 	/* Unload XDP program if requested */
 	if (cfg.do_unload)
-		return detach_bpf_to_xdp(cfg.ifindex, cfg.xdp_flags);
+		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 
 	if(opt_xsks_num > 1)
 		load_bpf_program(argv, &bpf_obj);
