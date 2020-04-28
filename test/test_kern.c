@@ -113,7 +113,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 SEC("xdp_ipv6_pass")
 int xdp_parser_func(struct xdp_md *ctx)
 {
-	void *data = (void *)(long)ctx->data;
+	/*void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 
 	//start new header cursor postion at data start
@@ -124,7 +124,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	int proto = parse_ethhdr(&hc, data_end, &eth);
 	if(bpf_htons(proto) != ETH_P_IPV6)
 		return XDP_DROP;
-	
+	*/
 	return XDP_PASS;
 	//read via xdp_stats
 	//return xdp_stats_record_action(ctx, action); 
