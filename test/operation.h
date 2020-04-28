@@ -55,6 +55,15 @@ struct xsk_socket_info
 extern int xsk_index;
 extern struct xsk_socket_info *xsks[MAX_SOCKS];
 
+//xdp config
+struct xdp_config{
+	int ifindex;
+	u32 xdp_flags;
+	bool do_unload;
+	char filename[512];
+	char progsec[32];
+};
+
 //get ethert frame
 void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
 

@@ -106,7 +106,7 @@ void remove_bpf_program(){
 		printf("program on interface changed, not removing\n");
 }
 
-int attach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
+int attach_bpf_off_xdp(int ifindex, int prog_fd, u32 xdp_flags){
 	int err;
 
 	/* libbpf provide the XDP net_device link-level hook attach helper */
@@ -149,13 +149,14 @@ int attach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
 
 	return EXIT_OK;
 }
-int detach_bpf_to_xdp(int ifindex, int prog_id, u32 xdp_flags){
+int detach_bpf_to_xdp(int ifindex, u32 xdp_flags){
 	int err;
 	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
 		fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
 			err, strerror(-err));
 		return EXIT_FAIL_XDP;
 	}
+	return 0;
 }
 
 struct xsk_umem_info *xsk_configure_umem(){
