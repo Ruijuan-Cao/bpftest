@@ -71,7 +71,7 @@ void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
 void usage(const char *prog);
 void print_benchmark(bool running);
 void dump_stats();	//dump current statistics 
-void parse_command_line(int argc, char **argv, xdp_config *cfg);
+void parse_command_line(int argc, char **argv, struct xdp_config *cfg);
 
 //exit
 void __exit_with_error(int error, const char *file, const char *func, int line);
