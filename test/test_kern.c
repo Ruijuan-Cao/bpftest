@@ -17,13 +17,6 @@
 #define VLAN_MAX_DEPTH 4
 #endif
 
-static __always_inline int proto_is_vlan(__u16 h_proto)
-{
-	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
-		  h_proto == bpf_htons(ETH_P_8021AD));
-}
-
-
 //map for count the passed packet
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
@@ -73,9 +66,14 @@ struct vlan_hdr {
 	__be16	h_vlan_encapsulated_proto;
 };
 
+int proto_is_vlan(__u16 h_proto)
+{
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
+}
 
 //parse ethhdr
-static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = hc->pos;
 	int hdr_size = sizeof(*eth);
@@ -124,10 +122,10 @@ int xdp_parser_func(struct xdp_md *ctx)
 	hc->pos = data;
 
 	//parse proto
-	// struct ethhdr *eth;
-	// int proto = parse_ethhdr(hc, data_end, &eth);
-	// if(bpf_htons(proto) != ETH_P_IPV6)
-	// 	return XDP_DROP;
+	struct ethhdr *eth;
+	int proto = parse_ethhdr(hc, data_end, &eth);
+	if(bpf_htons(proto) != ETH_P_IPV6)
+		return XDP_DROP;
 
 	return XDP_PASS;
 	//read via xdp_stats
