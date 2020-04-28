@@ -310,7 +310,8 @@ void gen_eth_frame(struct xsk_umem_info *umem, u64 addr){
 void usage(const char *prog){
 	const char *str =
 		"  Usage: %s [OPTIONS]\n"
-		"  Options:\n"
+		"  Options:\n"		
+		"  -P, --progsec	Set program section in kern.c\n"
 		"  -r, --rxdrop		Discard all incoming packets (default)\n"
 		"  -t, --txonly		Only send packets\n"
 		"  -l, --l2fwd		MAC swap L2 forwarding\n"
@@ -364,6 +365,7 @@ struct option long_options[] = {
 	{"rxdrop", no_argument, 0, 'r'},
 	{"txonly", no_argument, 0, 't'},
 	{"l2fwd", no_argument, 0, 'l'},
+	{"progsec", required_argument, 0, 'P'},
 	{"interface", required_argument, 0, 'i'},
 	{"queue", required_argument, 0, 'q'},
 	{"poll", no_argument, 0, 'p'},
