@@ -311,7 +311,7 @@ void usage(const char *prog){
 	const char *str =
 		"  Usage: %s [OPTIONS]\n"
 		"  Options:\n"		
-		"  -P, --progsec	Set program section in kern.c\n"
+		"  -s, --progsec 	Set program section in kern.c\n"
 		"  -r, --rxdrop		Discard all incoming packets (default)\n"
 		"  -t, --txonly		Only send packets\n"
 		"  -l, --l2fwd		MAC swap L2 forwarding\n"
@@ -365,7 +365,7 @@ struct option long_options[] = {
 	{"rxdrop", no_argument, 0, 'r'},
 	{"txonly", no_argument, 0, 't'},
 	{"l2fwd", no_argument, 0, 'l'},
-	{"progsec", required_argument, 0, 'P'},
+	{"progsec", required_argument, 0, 's'},
 	{"interface", required_argument, 0, 'i'},
 	{"queue", required_argument, 0, 'q'},
 	{"poll", no_argument, 0, 'p'},
@@ -391,7 +391,7 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			break;
 
 		switch (c) {
-		case 'P':
+		case 's':
 			opt_progsec = optarg;
 			break;
 		case 'r':
