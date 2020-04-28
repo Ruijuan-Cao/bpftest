@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <getopt.h>
 #include <sys/mman.h>
 #include <time.h>
@@ -35,7 +36,7 @@ enum benchmark_type {
 
 //xdp config
 struct xdp_config{
-	int ifndef;
+	int ifindef;
 	bool do_unload;
 	char filename[512];
 	char progsec[32];

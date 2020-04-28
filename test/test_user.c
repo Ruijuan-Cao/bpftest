@@ -327,13 +327,17 @@ int main(int argc, char **argv)
 	pthread_t pt;
 
 	//command line option for changing config
-	parse_command_line(argc, argv);
+	parse_command_line(argc, argv, &cfg);
 
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
+	/* Unload XDP program if requested */
+	if (cfg.do_unload)
+		return detach_bpf_to_xdp(cfg.ifindex, cfg.xdp_flags, 0);
 
 	if(opt_xsks_num > 1)
 		load_bpf_program(argv, &bpf_obj);

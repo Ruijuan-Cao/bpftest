@@ -106,11 +106,56 @@ void remove_bpf_program(){
 		printf("program on interface changed, not removing\n");
 }
 
-void attach_bpf_to_xdp(int ifindex, int prog_id, u32 xdp_flags){
+int attach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
+	int err;
 
+	/* libbpf provide the XDP net_device link-level hook attach helper */
+	err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
+	if (err == -EEXIST && !(xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
+		/* Force mode didn't work, probably because a program of the
+		 * opposite type is loaded. Let's unload that and try loading
+		 * again.
+		 */
+
+		__u32 old_flags = xdp_flags;
+
+		xdp_flags &= ~XDP_FLAGS_MODES;
+		xdp_flags |= (old_flags & XDP_FLAGS_SKB_MODE) ? XDP_FLAGS_DRV_MODE : XDP_FLAGS_SKB_MODE;
+		err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
+		if (!err)
+			err = bpf_set_link_xdp_fd(ifindex, prog_fd, old_flags);
+	}
+
+	if (err < 0) {
+		fprintf(stderr, "ERR: "
+			"ifindex(%d) link set xdp fd failed (%d): %s\n",
+			ifindex, -err, strerror(-err));
+
+		switch (-err) {
+		case EBUSY:
+		case EEXIST:
+			fprintf(stderr, "Hint: XDP already loaded on device"
+				" use --force to swap/replace\n");
+			break;
+		case EOPNOTSUPP:
+			fprintf(stderr, "Hint: Native-XDP not supported"
+				" use --skb-mode or --auto-mode\n");
+			break;
+		default:
+			break;
+		}
+		return EXIT_FAIL_XDP;
+	}
+
+	return EXIT_OK;
 }
-void detach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
-
+int detach_bpf_to_xdp(int ifindex, int prog_id, u32 xdp_flags){
+	int err;
+	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
+		fprintf(stderr, "ERR: link set xdp unload failed (err=%d):%s\n",
+			err, strerror(-err));
+		return EXIT_FAIL_XDP;
+	}
 }
 
 struct xsk_umem_info *xsk_configure_umem(){
@@ -333,7 +378,7 @@ struct option long_options[] = {
 	{"force", no_argument, 0, 'F'},
 	{0, 0, 0, 0}
 };
-void parse_command_line(int argc, char **argv){
+void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 	int option_index, c;
 
 	for (;;) {
@@ -409,6 +454,8 @@ void parse_command_line(int argc, char **argv){
 			opt_if);
 		usage(basename(argv[0]));
 	}
+	cfg->ifindex = opt_ifindex;
+	cfg->xdp_flags = opt_xdp_flags;
 
 	if ((opt_xsk_frame_size & (opt_xsk_frame_size - 1)) &&
 	    !opt_unaligned_chunks) {
