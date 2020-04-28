@@ -91,9 +91,8 @@ int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 	struct vlan_hdr *vlh;
 	vlh = hc->pos;
 
-	/* Use loop unrolling to avoid the verifier restriction on loops;
-	 * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
-	 */
+	// Use loop unrolling to avoid the verifier restriction on loops;
+	// support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
 	#pragma unroll
 	for (int i = 0; i < VLAN_MAX_DEPTH; i++) {
 		if (!proto_is_vlan(h_proto))
@@ -114,7 +113,7 @@ int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 SEC("xdp_ipv6_pass")
 int xdp_parser_func(struct xdp_md *ctx)
 {
-	void *data = (void *)(long)ctx->data;
+	/*void *data = (void *)(long)ctx->data;
 	void *data_end = (void *)(long)ctx->data_end;
 
 	//start new header cursor postion at data start
@@ -126,7 +125,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	int proto = parse_ethhdr(hc, data_end, &eth);
 	if(bpf_htons(proto) != ETH_P_IPV6)
 		return XDP_DROP;
-
+	*/
 	return XDP_PASS;
 	//read via xdp_stats
 	//return xdp_stats_record_action(ctx, action); 
