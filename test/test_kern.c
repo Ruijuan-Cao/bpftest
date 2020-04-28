@@ -1,6 +1,7 @@
 /* test_kernel, for AF-XDP learning */
 #include <linux/bpf.h>
 #include <linux/if_ether.h>
+#include <linux/if_vlan.h>
 #include <linux/ipv6.h>
 #include <bpf/bpf_helpers.h>
 
@@ -49,7 +50,7 @@ struct hdr_cursor{
 }
 
 //parse ethhdr
-static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+static int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = hc->pos;
 	int hdr_size = sizeof(*eth);
@@ -71,7 +72,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	 * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
 	 */
 	#pragma unroll
-	for (i = 0; i < VLAN_MAX_DEPTH; i++) {
+	for (int i = 0; i < VLAN_MAX_DEPTH; i++) {
 		if (!proto_is_vlan(h_proto))
 			break;
 
