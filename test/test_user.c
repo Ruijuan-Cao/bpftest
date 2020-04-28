@@ -320,7 +320,7 @@ int main(int argc, char **argv)
 		.do_unload = false,
 		.filename = "",
 		.progsec = "xdp_pass"
-	}
+	};
 
 	bool rx = false, tx = false;
 	struct bpf_object *bpf_obj;

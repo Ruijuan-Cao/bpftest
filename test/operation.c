@@ -106,7 +106,7 @@ void remove_bpf_program(){
 		printf("program on interface changed, not removing\n");
 }
 
-int attach_bpf_off_xdp(int ifindex, int prog_fd, u32 xdp_flags){
+int attach_bpf_off_xdp(int ifindex, u32 xdp_flags, int prog_fd){
 	int err;
 
 	/* libbpf provide the XDP net_device link-level hook attach helper */
