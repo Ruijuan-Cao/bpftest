@@ -61,7 +61,29 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	hc->pos += hdr_size;
 	*ethhdr = eth;
 
-	return ntohs(eth->h_proto);
+	__u16 h_proto;
+	h_proto = eth->h_proto;
+
+	struct vlan_hdr *vlh;
+	vlh = hc->pos;
+
+	/* Use loop unrolling to avoid the verifier restriction on loops;
+	 * support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
+	 */
+	#pragma unroll
+	for (i = 0; i < VLAN_MAX_DEPTH; i++) {
+		if (!proto_is_vlan(h_proto))
+			break;
+
+		if (vlh + 1 > data_end)
+			break;
+
+		h_proto = vlh->h_vlan_encapsulated_proto;
+		vlh++;
+	}
+
+	hc->pos = vlh;
+	return h_proto;
 }
 
 //filter ipv6
