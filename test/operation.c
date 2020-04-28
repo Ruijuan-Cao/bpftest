@@ -52,7 +52,7 @@ void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
 	 * loading this into the kernel via bpf-syscall
 	 */
 	if (bpf_prog_load_xattr(&prog_load_attr, bpf_obj, &prog_fd)){
-		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n", xdp_filename, err, strerror(-err));
+		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n", xdp_filename, errno, strerror(-errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -107,7 +107,7 @@ void remove_bpf_program(){
 }
 
 void attach_bpf_to_xdp(int ifindex, int prog_id, u32 xdp_flags){
-	
+
 }
 void detach_bpf_off_xdp(int ifindex, int prog_id, u32 xdp_flags){
 
@@ -452,7 +452,7 @@ void __exit_with_error(int error, const char *file, const char *func, int line){
 	fprintf(stderr, "%s:%s:%i: errno: %d/\"%s\"\n", file, func,
 		line, error, strerror(error));
 	dump_stats();
-	remove_xdp_program();
+	remove_bpf_program();
 	exit(EXIT_FAILURE);
 }
 
@@ -465,7 +465,7 @@ void normal_exit(int sig){
 	for (i = 0; i < xsk_index; i++)
 		xsk_socket__delete(xsks[i]->xsk);
 	xsk_umem__delete(umem);
-	remove_xdp_program();
+	remove_bpf_program();
 
 	exit(EXIT_SUCCESS);
 }

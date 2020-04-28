@@ -39,7 +39,7 @@ struct xdp_config{
 	bool do_unload;
 	char filename[512];
 	char progsec[32];
-}
+};
 
 //pkt_data
 static const char pkt_data[] =

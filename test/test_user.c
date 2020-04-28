@@ -336,7 +336,7 @@ int main(int argc, char **argv)
 	}
 
 	if(opt_xsks_num > 1)
-		load_xdp_program(argv, &bpf_obj);
+		load_bpf_program(argv, &bpf_obj);
 
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
