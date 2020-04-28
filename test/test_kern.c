@@ -66,14 +66,14 @@ struct vlan_hdr {
 	__be16	h_vlan_encapsulated_proto;
 };
 
-int proto_is_vlan(__u16 h_proto)
+static __always_inline int proto_is_vlan(__u16 h_proto)
 {
 	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
 		  h_proto == bpf_htons(ETH_P_8021AD));
 }
 
 //parse ethhdr
-int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
 {
 	struct ethhdr *eth = hc->pos;
 	int hdr_size = sizeof(*eth);
@@ -117,14 +117,13 @@ int xdp_parser_func(struct xdp_md *ctx)
 	void *data_end = (void *)(long)ctx->data_end;
 
 	//start new header cursor postion at data start
-	struct hdr_cursor *hc = 0;
-	hc->pos = data;
+	struct hdr_cursor hc = {.pos = data};
 
 	//parse proto
 	struct ethhdr *eth;
-	int proto = parse_ethhdr(hc, data_end, &eth);
-	//if(bpf_htons(proto) != ETH_P_IPV6)
-	//	return XDP_DROP;
+	int proto = parse_ethhdr(&hc, data_end, &eth);
+	if(bpf_htons(proto) != ETH_P_IPV6)
+		return XDP_DROP;
 	
 	return XDP_PASS;
 	//read via xdp_stats
