@@ -451,6 +451,7 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 		}
 	}
 
+	printf("---if----%s\n", opt_if);
 	opt_ifindex = if_nametoindex(opt_if);
 	if (!opt_ifindex) {
 		fprintf(stderr, "ERROR: interface \"%s\" does not exist\n",
