@@ -1,4 +1,4 @@
-#include <linux/bpf.h>
+ #include <linux/bpf.h>
 #include <sys/resource.h>
 
 #include <signal.h>
@@ -328,6 +328,7 @@ int main(int argc, char **argv)
 
 	//command line option for changing config
 	parse_command_line(argc, argv, &cfg);
+	printf("after command line\n");
 
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
