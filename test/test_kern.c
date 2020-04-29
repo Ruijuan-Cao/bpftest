@@ -52,9 +52,9 @@ int xdp_pass_func(struct xdp_md *ctx)
 }
 
 //header cursor to track current parsing position
-struct hdr_cursor{
-	void *pos;
-};
+// struct hdr_cursor{
+	// void *pos;
+// };
 
 /*
  *	struct vlan_hdr - vlan header
