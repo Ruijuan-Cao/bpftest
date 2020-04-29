@@ -338,13 +338,14 @@ int main(int argc, char **argv)
 	/* Unload XDP program if requested */
 	if (cfg.do_unload)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
+	printf("after Unload\n");
 
 	if(opt_xsks_num > 1)
 		load_bpf_program(argv, &bpf_obj);
-
+	printf("after load_bpf_program\n");
 	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
-
+	printf("after xsk_configure_umem\n");
 	//rx or tx
 	if (opt_bench == BENCH_RXDROP || opt_bench == BENCH_L2FWD) {
 		rx = true;
