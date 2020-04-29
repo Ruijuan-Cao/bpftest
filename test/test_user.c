@@ -335,8 +335,8 @@ int main(int argc, char **argv)
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
-	/* Unload XDP program if requested */
+	/*
+	// Unload XDP program if requested 
 	if (cfg.do_unload)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 	printf("after Unload\n");
@@ -385,6 +385,6 @@ int main(int argc, char **argv)
 		tx_only_all();
 	else
 		l2fwd_all();
-
+	*/
 	return 0;
 }
