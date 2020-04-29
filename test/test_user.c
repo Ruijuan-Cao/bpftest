@@ -327,15 +327,16 @@ int main(int argc, char **argv)
 	pthread_t pt;
 
 	//command line option for changing config
+	printf("start command line\n");
 	parse_command_line(argc, argv, &cfg);
 	printf("after command line\n");
-
+	/*
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	/*
+	
 	// Unload XDP program if requested 
 	if (cfg.do_unload)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
