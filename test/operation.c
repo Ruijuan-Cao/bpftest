@@ -311,7 +311,7 @@ void usage(const char *prog){
 	const char *str =
 		"  Usage: %s [OPTIONS]\n"
 		"  Options:\n"		
-		"  -x, --progsec 	Set program section in kern.c\n"
+		//"  -x, --progsec 	Set program section in kern.c\n"
 		"  -r, --rxdrop		Discard all incoming packets (default)\n"
 		"  -t, --txonly		Only send packets\n"
 		"  -l, --l2fwd		MAC swap L2 forwarding\n"
@@ -385,15 +385,15 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 	int option_index, c;
 
 	for (;;) {
-		c = getopt_long(argc, argv, "Frtlix:q:psSNn:czf:muM",
+		c = getopt_long(argc, argv, "Frtli:q:psSNn:czf:muM",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 
 		switch (c) {
-		case 'x':
-			opt_progsec = optarg;
-			break;
+		// case 'x':
+		// 	opt_progsec = optarg;
+		// 	break;
 		case 'r':
 			opt_bench = BENCH_RXDROP;
 			break;
@@ -408,7 +408,8 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			opt_if = optarg;
 			break;
 		case 'q':
-			opt_queue = atoi(optarg);
+			//opt_queue = atoi(optarg);
+			opt_progsec = optarg;
 			break;
 		case 'p':
 			opt_poll = 1;
