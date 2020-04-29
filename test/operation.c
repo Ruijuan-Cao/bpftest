@@ -451,7 +451,7 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 		}
 	}
 
-	printf("usage\n");
+	printf("usage----%s\n", opt_if);
 	opt_ifindex = if_nametoindex(opt_if);
 	printf("if_nametoindex\n");
 	if (!opt_ifindex) {
