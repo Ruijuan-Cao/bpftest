@@ -404,6 +404,7 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			opt_bench = BENCH_L2FWD;
 			break;
 		case 'i':
+			printf("---optarg---%s\n", optarg);
 			opt_if = optarg;
 			break;
 		case 'q':
