@@ -468,6 +468,7 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			opt_xsk_frame_size);
 		usage(basename(argv[0]));
 	}
+	printf("usage\n");
 }
 
 void dump_stats(){
