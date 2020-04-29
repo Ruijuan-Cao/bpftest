@@ -181,6 +181,7 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 	struct ethhdr *eth = (struct ethhdr *) pkt;
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
+		printf("----recv--%d-----%d\n", len, ntohs(eth->h_proto));
 	//check
 	if (ntohs(eth->h_proto) != ETH_P_IPV6)
 		printf("----h_proto=%x, len=%d\n", ntohs(eth->h_proto), len);
