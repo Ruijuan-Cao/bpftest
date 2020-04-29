@@ -128,9 +128,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 		return XDP_DROP;
 	
 	return XDP_PASS;
-	//read via xdp_stats
 	//return xdp_stats_record_action(ctx, action); 
 }
-
 
 char _license[] SEC("license") = "GPL";
