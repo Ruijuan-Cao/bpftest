@@ -61,6 +61,7 @@ struct hdr_cursor{
  *	@h_vlan_TCI: priority and VLAN ID
  *	@h_vlan_encapsulated_proto: packet type ID or len
  */
+/*
 struct vlan_hdr {
 	__be16	h_vlan_TCI;
 	__be16	h_vlan_encapsulated_proto;
@@ -108,6 +109,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	hc->pos = vlh;
 	return h_proto;
 }
+*/
 
 //filter ipv6
 SEC("xdp_ipv6_pass")
