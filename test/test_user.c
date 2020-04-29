@@ -330,7 +330,7 @@ int main(int argc, char **argv)
 	printf("start command line\n");
 	parse_command_line(argc, argv, &cfg);
 	printf("after command line\n");
-	/*
+	
 	if (setrlimit(RLIMIT_MEMLOCK, &r)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
 			strerror(errno));
@@ -386,6 +386,6 @@ int main(int argc, char **argv)
 		tx_only_all();
 	else
 		l2fwd_all();
-	*/
+	
 	return 0;
 }
