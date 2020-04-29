@@ -451,12 +451,14 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 		}
 	}
 
+	printf("usage\n");
 	opt_ifindex = if_nametoindex(opt_if);
 	if (!opt_ifindex) {
 		fprintf(stderr, "ERROR: interface \"%s\" does not exist\n",
 			opt_if);
 		usage(basename(argv[0]));
 	}
+	printf("opt_ifindex\n");
 	// cfg->ifindex = opt_ifindex;
 	// cfg->xdp_flags = opt_xdp_flags;
 
