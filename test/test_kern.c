@@ -36,22 +36,22 @@ struct datarec {
 	__u64 rx_packets;
 	/* Assignment#1: Add byte counters */
 };
-/*
+
 
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
 	struct datarec *pkt;
 	__u32 key = XDP_PASS;
-	pkt = bpf_map_lookup_elem(&bpf_pass_map, &key);
-	if (!pkt)
+	//pkt = bpf_map_lookup_elem(&bpf_pass_map, &key);
+	//if (!pkt)
 		return XDP_ABORTED;
 
-	lock_xadd(&pkt->rx_packets, 1);	
+	//lock_xadd(&pkt->rx_packets, 1);	
 
-	return XDP_PASS;
+	//return XDP_PASS;
 }
-*/
+
 
 //header cursor to track current parsing position
 struct hdr_cursor{
