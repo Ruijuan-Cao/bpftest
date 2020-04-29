@@ -311,7 +311,7 @@ void usage(const char *prog){
 	const char *str =
 		"  Usage: %s [OPTIONS]\n"
 		"  Options:\n"		
-		//"  -x, --progsec 	Set program section in kern.c\n"
+		"  -x, --progsec 	Set program section in kern.c\n"
 		"  -r, --rxdrop		Discard all incoming packets (default)\n"
 		"  -t, --txonly		Only send packets\n"
 		"  -l, --l2fwd		MAC swap L2 forwarding\n"
@@ -385,15 +385,15 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 	int option_index, c;
 
 	for (;;) {
-		c = getopt_long(argc, argv, "Frtli:q:psSNn:czf:muM",
+		c = getopt_long(argc, argv, "Frtli:x:q:psSNn:czf:muM",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 
 		switch (c) {
-		// case 'x':
-		// 	opt_progsec = optarg;
-		// 	break;
+		case 'x':
+			opt_progsec = optarg;
+			break;
 		case 'r':
 			opt_bench = BENCH_RXDROP;
 			break;
@@ -404,12 +404,10 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			opt_bench = BENCH_L2FWD;
 			break;
 		case 'i':
-			printf("---optarg---%s\n", optarg);
 			opt_if = optarg;
 			break;
 		case 'q':
-			//opt_queue = atoi(optarg);
-			opt_progsec = optarg;
+			opt_queue = atoi(optarg);
 			break;
 		case 'p':
 			opt_poll = 1;
@@ -453,15 +451,13 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 		}
 	}
 
-	printf("usage----%s\n", opt_if);
 	opt_ifindex = if_nametoindex(opt_if);
-	printf("if_nametoindex\n");
 	if (!opt_ifindex) {
 		fprintf(stderr, "ERROR: interface \"%s\" does not exist\n",
 			opt_if);
 		usage(basename(argv[0]));
 	}
-	printf("opt_ifindex\n");
+
 	// cfg->ifindex = opt_ifindex;
 	// cfg->xdp_flags = opt_xdp_flags;
 

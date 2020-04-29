@@ -52,16 +52,16 @@ int xdp_pass_func(struct xdp_md *ctx)
 }
 
 //header cursor to track current parsing position
-// struct hdr_cursor{
-	// void *pos;
-// };
+struct hdr_cursor{
+	void *pos;
+};
 
 /*
  *	struct vlan_hdr - vlan header
  *	@h_vlan_TCI: priority and VLAN ID
  *	@h_vlan_encapsulated_proto: packet type ID or len
  */
-/*
+
 struct vlan_hdr {
 	__be16	h_vlan_TCI;
 	__be16	h_vlan_encapsulated_proto;
@@ -131,6 +131,6 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//read via xdp_stats
 	//return xdp_stats_record_action(ctx, action); 
 }
-*/
+
 
 char _license[] SEC("license") = "GPL";
