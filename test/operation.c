@@ -457,9 +457,10 @@ void parse_command_line(int argc, char **argv, struct xdp_config *cfg){
 			opt_if);
 		usage(basename(argv[0]));
 	}
+	printf("if_nametoindex\n");
 
-	// cfg->ifindex = opt_ifindex;
-	// cfg->xdp_flags = opt_xdp_flags;
+	cfg->ifindex = opt_ifindex;
+ 	cfg->xdp_flags = opt_xdp_flags;
 
 	if ((opt_xsk_frame_size & (opt_xsk_frame_size - 1)) &&
 	    !opt_unaligned_chunks) {
