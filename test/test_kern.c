@@ -36,6 +36,7 @@ struct datarec {
 	__u64 rx_packets;
 	/* Assignment#1: Add byte counters */
 };
+/*
 
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
@@ -50,6 +51,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 
 	return XDP_PASS;
 }
+*/
 
 //header cursor to track current parsing position
 struct hdr_cursor{
