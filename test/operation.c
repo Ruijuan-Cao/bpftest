@@ -45,8 +45,8 @@ void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
 	char xdp_filename[256];
 	int prog_fd;
 
-	snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
-	prog_load_attr.file = xdp_filename;
+	//snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
+	prog_load_attr.file = "test_kern.o";//xdp_filename;
 
 	/* Use libbpf for extracting BPF byte-code from BPF-ELF object, and
 	 * loading this into the kernel via bpf-syscall

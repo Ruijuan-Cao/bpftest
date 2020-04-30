@@ -183,17 +183,17 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 
 	//check
-	if (ntohs(eth->h_proto) != ETH_P_IPV6)
+	//if (ntohs(eth->h_proto) == ETH_P_IP)
 		printf("--------------------h_proto=%x, len=%d\n", ntohs(eth->h_proto), len);
-	else
-		printf("----recv--%d-----%d\n", len, ntohs(eth->h_proto));
+	//else
+	//	printf("----recv--%d-----%d\n", len, ntohs(eth->h_proto));
 
-	if (ntohs(eth->h_proto) != ETH_P_IPV6 ||
+	if (ntohs(eth->h_proto) != ETH_P_IP ||
 		    len < (sizeof(*eth) + sizeof(*ipv6) + sizeof(*icmp)) ||
 		    ipv6->nexthdr != IPPROTO_ICMPV6 ||
 		    icmp->icmp6_type != ICMPV6_ECHO_REQUEST)
-			return false;
-
+				return false;
+	
 	//swap dest and source mac
 	char tmp_mac[ETH_ALEN];
 	memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 	printf("after Unload\n");
 
-	if(opt_xsks_num > 1)
+	//if(opt_xsks_num > 1)
 		load_bpf_program(argv, &bpf_obj);
 	printf("after load_bpf_program\n");
 	//config & create umem
