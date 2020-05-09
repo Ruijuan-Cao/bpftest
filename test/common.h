@@ -16,7 +16,7 @@
 
 //size
 #ifndef MAX_SOCKS
-#define MAX_SOCKS 4
+#define MAX_SOCKS 2
 #endif
 
 #define FRAME_NUM (4 * 1024)

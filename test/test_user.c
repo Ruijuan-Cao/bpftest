@@ -365,8 +365,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < FRAME_NUM; ++i)
 			gen_eth_frame(umem, i * opt_xsk_frame_size);
 
-	if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
-		configure_bpf_map(bpf_obj);
+	//if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
+	//	configure_bpf_map(bpf_obj);
 
 	signal(SIGINT, normal_exit);
 	signal(SIGTERM, normal_exit);
