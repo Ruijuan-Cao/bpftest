@@ -19,7 +19,7 @@
 #ifndef VLAN_MAX_DEPTH
 #define VLAN_MAX_DEPTH 4
 #endif
-
+/*
 //map for count the passed packet
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
@@ -28,7 +28,7 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 	.value_size	= sizeof(__u64),
 	.max_entries= XDP_ACTION_MAX,
 };
-
+*/
 //fetch and add value to ptr
 #ifndef lock_xadd
 #define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
@@ -69,7 +69,7 @@ struct vlan_hdr {
 	__be16	h_vlan_TCI;
 	__be16	h_vlan_encapsulated_proto;
 };
-
+/*
 static __always_inline int proto_is_vlan(__u16 h_proto)
 {
 	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
@@ -92,7 +92,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	__u16 h_proto;
 	h_proto = eth->h_proto;
 
-	/*
+	
 	struct vlan_hdr *vlh;
 	vlh = hc->pos;
 
@@ -111,7 +111,7 @@ static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, s
 	}
 
 	hc->pos = vlh;
-	*/
+	
 	return h_proto;
 }
 
@@ -130,7 +130,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//parse proto
 	struct ethhdr *eth;
 	int proto = parse_ethhdr(&hc, data_end, &eth);
-	/*
+	
 	struct ethhdr *eth = hc.pos;
         int hdr_size = sizeof(*eth);
 
@@ -142,7 +142,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 
         __u16 h_proto;
         h_proto = eth->h_proto;	
-	*/
+	
 	int x = 0;
 	__u32 action = XDP_PASS;
 	//proto = parse_ethhdr(&hc, data_end, &eth);
@@ -158,7 +158,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//return action;
 	//return xdp_stats_record_action(ctx, action); 
 }
-
+*/
 #define htons(x) ((__be16)___constant_swab16((x)))
 #define htonl(x) ((__be32)___constant_swab32((x)))
 
