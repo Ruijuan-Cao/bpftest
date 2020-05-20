@@ -56,7 +56,7 @@ int  xdp_prog_simple(struct xdp_md *ctx)
                         return XDP_PASS;
                 }
                 if (iph->protocol == IPPROTO_UDP &&
-                    (htonl(iph->daddr) & 0xFFFFFFFF) ==
+                    (htonl(iph->daddr) & 0xFFFFFE00) ==
                             0xC612E3CC // 198.18.227.204/23
                     && udph->dest == htons(12345)) {
                         return XDP_DROP;
