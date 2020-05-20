@@ -55,13 +55,13 @@ int  xdp_prog_simple(struct xdp_md *ctx)
                 if (udph + 1 > (struct udphdr *)data_end) {
                         return XDP_PASS;
                 }
-/*                if (iph->protocol == IPPROTO_UDP &&
-                    (htonl(iph->daddr) & 0xFFFFFF00) ==
-                            0xC6120000 // 198.18.0.0/24
+                if (iph->protocol == IPPROTO_UDP &&
+                    (htonl(iph->daddr) & 0xFFFFFE00) ==
+                            0xC612E300 // 198.18.227.0/23
                     && udph->dest == htons(1234)) {
                         return XDP_DROP;
                 }
-*/
+
 		if (iph->protocol == IPPROTO_UDP && udph->dest == htons(12345))
 			return XDP_DROP;
         }
