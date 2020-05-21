@@ -57,13 +57,10 @@ int  xdp_prog_simple(struct xdp_md *ctx)
                 }
                 if (iph->protocol == IPPROTO_UDP &&
                     (htonl(iph->daddr) & 0xFFFFFE00) ==
-                            0xC612E300 // 198.18.227.0/23
-                    && udph->dest == htons(1234)) {
+                            0xC612E3CC // 198.18.227.204/23
+                    && udph->dest == htons(12345)) {
                         return XDP_DROP;
                 }
-
-		if (iph->protocol == IPPROTO_UDP && udph->dest == htons(12345))
-			return XDP_DROP;
         }
 /*	 else if (h_proto == htons(ETH_P_IPV6)) {
                 struct ipv6hdr *ip6h = data + nh_off;
