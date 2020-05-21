@@ -135,7 +135,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 		packets = rec->total.rx_packets - prev->total.rx_packets;
 		pps     = packets / period;
-printf("-------%x-----\n", inet_aton(rec->total.saddr));
+printf("---%d----%x-----\n",rec->total.rx_packets, rec->total.saddr);
 		printf(fmt, action, rec->total.rx_packets, pps, period);
 	}
 }
@@ -181,6 +181,7 @@ static bool map_collect(int fd, __u32 map_type, __u32 key, struct record *rec)
 
 	/* Assignment#1: Add byte counters */
 	rec->total.rx_packets = value.rx_packets;
+	rec->total.saddr = value.saddr;
 	return true;
 }
 
@@ -269,6 +270,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 
 int main(int argc, char **argv)
 {
+	printf("size=%d, %d, %d\n", sizeof(struct datarec), sizeof(__u64), sizeof(__u32));
 	printf("----xdp action----%d---%d-\n", XDP_ACTION_MAX, XDP_REDIRECT);
 	struct bpf_map_info map_expect = { 0 };
 	struct bpf_map_info info = { 0 };

@@ -52,7 +52,7 @@ int  xdp_stats1_func(struct xdp_md *ctx)
 	/* Multiple CPUs can access data record. Thus, the accounting needs to
 	 * use an atomic operation.
 	 */
-	lock_xadd(&rec->rx_packets, 1);
+	//lock_xadd(&rec->rx_packets, 1);
 void *data_end = (void *)(long)ctx->data_end;
         void *data = (void *)(long)ctx->data;
         struct ethhdr *eth = data;
@@ -65,21 +65,22 @@ void *data_end = (void *)(long)ctx->data_end;
         __u64 h_proto = eth->h_proto;
 
 	if (h_proto == htons(ETH_P_IP)) {
-                struct iphdr *iph = data + nh_off;
-                /*struct udphdr *udph = data + nh_off + sizeof(struct iphdr);
+		struct iphdr *iph = data + nh_off;
+                
+		struct udphdr *udph = data + nh_off + sizeof(struct iphdr);
                 if (udph + 1 > (struct udphdr *)data_end) {
-                        return XDP_PASS;
+			      return XDP_PASS;
                 }
-                if (iph->protocol == IPPROTO_UDP 
-	
-                //&&    (htonl(iph->daddr) & 0xFFFFFE00) ==
-        	 //                   0xC612E3CC // 198.18.227.204/23
-                   && udph->dest == htons(12345)) {
-                  */ rec->saddr = iph->saddr;
+                if (iph->protocol == IPPROTO_UDP)
+	{
+	 if((htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300 && udph->dest == htons(12345))
+         {
+			rec->saddr = htonl(iph->saddr);
+			 lock_xadd(&rec->rx_packets, 1);
+	}
 		//     return XDP_DROP;
-                //}
+          }
         }
-	//rec->rx_packets = 13;
 	/* Assignment#1: Add byte counters
          * - Hint look at struct xdp_md *ctx (copied below)
          *

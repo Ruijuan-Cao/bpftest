@@ -7,7 +7,8 @@
 /* This is the data record stored in the map */
 struct datarec {
 	__u64 rx_packets;
-	__be32	saddr;
+	__u32 saddr;
+//	__u32 daddr;
 	/* Assignment#1: Add byte counters */
 };
 
