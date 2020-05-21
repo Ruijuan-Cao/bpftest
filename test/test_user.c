@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <net/if.h>
 #include <linux/if_ether.h>
+#include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
 
@@ -179,7 +180,17 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 
 	//get ipv6 info
 	struct ethhdr *eth = (struct ethhdr *) pkt;
-	printf("--eth=-----%x,\n",*eth );
+	
+	//get ip addr
+		printf("Source host:%s\n",eth->h_source);
+        	printf("Dest host:%s\n", eth->h_dest);
+
+	struct iphdr *iph;
+	iph = (struct iphdr*)(eth + sizeof(struct ethhdr));
+	//only ipv4 and no option
+	//if (iph->version == 4 && iph->ihl == 5) {
+		printf("---------Source host:%x\n",iph->saddr);
+
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 
@@ -324,7 +335,7 @@ int main(int argc, char **argv)
 		.ifindex = -1,
 		.do_unload = false,
 		.filename = "",
-		.progsec = "xdp_ipv6_pass"
+		.progsec = "filter"
 	};
 
 	bool rx = false, tx = false;
@@ -346,11 +357,11 @@ int main(int argc, char **argv)
 	if (cfg.do_unload)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 	printf("after Unload\n");
-
+printf("-----%d----\n", opt_xsks_num);
 	if(opt_xsks_num > 1)
-		load_bpf_program(argv, &bpf_obj);
+{		load_bpf_program(argv, &bpf_obj);
 	printf("after load_bpf_program\n");
-	//config & create umem
+}	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
 	printf("after xsk_configure_umem\n");
 	//rx or tx
@@ -370,8 +381,8 @@ int main(int argc, char **argv)
 		for (int i = 0; i < FRAME_NUM; ++i)
 			gen_eth_frame(umem, i * opt_xsk_frame_size);
 
-	//if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
-	//	configure_bpf_map(bpf_obj);
+	if (opt_xsks_num > 1 && opt_bench != BENCH_TXONLY)
+		configure_bpf_map(bpf_obj);
 
 	signal(SIGINT, normal_exit);
 	signal(SIGTERM, normal_exit);
