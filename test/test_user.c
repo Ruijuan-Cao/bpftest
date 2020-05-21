@@ -179,6 +179,7 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 
 	//get ipv6 info
 	struct ethhdr *eth = (struct ethhdr *) pkt;
+	printf("--eth=-----%x,\n",*eth );
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
 

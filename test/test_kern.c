@@ -196,10 +196,10 @@ int xdp_filter(struct xdp_md *ctx)
                 if (udph + 1 > (struct udphdr *)data_end) {
                         return XDP_PASS;
                 }
-                if (iph->protocol == IPPROTO_UDP &&
-                    (htonl(iph->daddr) & 0xFFFFFF00) ==
-                            0xC6120000 // 198.18.0.0/24
-                    && udph->dest == htons(1234)) {
+                if (iph->protocol == IPPROTO_UDP
+                    //&& (htonl(iph->daddr) & 0xFFFFFF00) ==
+                    //        0xC6120000 // 198.18.0.0/24
+                    && udph->dest == htons(12345)) {
                         return XDP_DROP;
                 }
         } else if (h_proto == htons(ETH_P_IPV6)) {
