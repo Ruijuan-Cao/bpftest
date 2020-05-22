@@ -135,7 +135,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 		packets = rec->total.rx_packets - prev->total.rx_packets;
 		pps     = packets / period;
-printf("-------%x-----\n", rec->total.saddr);
+printf("-------%x-----\n", inet_aton(rec->total.saddr));
 		printf(fmt, action, rec->total.rx_packets, pps, period);
 	}
 }

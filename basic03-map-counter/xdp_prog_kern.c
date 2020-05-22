@@ -66,7 +66,7 @@ void *data_end = (void *)(long)ctx->data_end;
 
 	if (h_proto == htons(ETH_P_IP)) {
                 struct iphdr *iph = data + nh_off;
-                struct udphdr *udph = data + nh_off + sizeof(struct iphdr);
+                /*struct udphdr *udph = data + nh_off + sizeof(struct iphdr);
                 if (udph + 1 > (struct udphdr *)data_end) {
                         return XDP_PASS;
                 }
@@ -74,10 +74,10 @@ void *data_end = (void *)(long)ctx->data_end;
 	
                 //&&    (htonl(iph->daddr) & 0xFFFFFE00) ==
         	 //                   0xC612E3CC // 198.18.227.204/23
-                    && udph->dest == htons(12345)) {
-                   rec->saddr = iph->saddr;
+                   && udph->dest == htons(12345)) {
+                  */ rec->saddr = iph->saddr;
 		//     return XDP_DROP;
-                }
+                //}
         }
 	//rec->rx_packets = 13;
 	/* Assignment#1: Add byte counters
