@@ -68,19 +68,18 @@ void *data_end = (void *)(long)ctx->data_end;
 		struct iphdr *iph = data + nh_off;
                 
 		struct udphdr *udph = data + nh_off + sizeof(struct iphdr);
-                if (udph + 1 > (struct udphdr *)data_end) {
-			      return XDP_PASS;
-                }
-                if (iph->protocol == IPPROTO_UDP)
-	{
-	 if((htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300 && udph->dest == htons(12345))
-         {
+        if (udph + 1 > (struct udphdr *)data_end) {
+			return XDP_PASS;
+        }
+        if (iph->protocol == IPPROTO_UDP
+        	&& (htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300
+        	&& udph->dest == htons(12345)
+        	)
 			rec->saddr = htonl(iph->saddr);
-			 lock_xadd(&rec->rx_packets, 1);
-	}
+			lock_xadd(&rec->rx_packets, 1);
 		//     return XDP_DROP;
           }
-        }
+    }
 	/* Assignment#1: Add byte counters
          * - Hint look at struct xdp_md *ctx (copied below)
          *
