@@ -30,8 +30,8 @@
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
 	.type		= BPF_MAP_TYPE_ARRAY,
-	.key_size	= sizeof(__u32),
-	.value_size	= sizeof(__u64),
+	.key_size	= sizeof(u32),
+	.value_size	= sizeof(u64),
 	.max_entries= XDP_ACTION_MAX,
 };
 
@@ -48,12 +48,6 @@ struct bpf_map_def SEC("maps") xdp_stats_map =
 #ifndef lock_xadd
 #define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
 #endif
-
-/* This is the data record stored in the map */
-struct datarec {
-	__u64 rx_packets;
-	/* Assignment#1: Add byte counters */
-};
 
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
