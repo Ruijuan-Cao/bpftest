@@ -13,6 +13,7 @@
 #include <bpf/bpf.h>
 
 #include "common.h"
+#include "common_defs.h"
 
 extern enum benchmark_type opt_bench;
 extern int opt_xsk_frame_size;
@@ -49,6 +50,9 @@ struct xsk_socket_info
 	//for stock frames
 	u64 umem_frame_addr[FRAME_NUM];
 	u64 umem_frame_free;
+
+	//stats_map
+	//datarec stats_rec;
 };
 
 //sockets
@@ -71,6 +75,7 @@ void gen_eth_frame(struct xsk_umem_info *umem, u64 addr);
 void usage(const char *prog);
 void print_benchmark(bool running);
 void dump_stats();	//dump current statistics 
+void print_stats_map_info();
 void parse_command_line(int argc, char **argv, struct xdp_config *cfg);
 
 //exit

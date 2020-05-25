@@ -17,7 +17,6 @@
 
 #include "common.h"
 #include "operation.h"
-#include "common_defs.h"
 
 int opt_timeout = 1000;
 extern enum benchmark_type opt_bench;
@@ -29,6 +28,19 @@ static void *poller(void *arg)
 	while (1){
 		sleep(opt_interval);
 		dump_stats();
+
+	}
+	return NULL;
+}
+
+//poller print stats map info with period
+//poller dump_stats with period
+static void *poller_stats(void *arg)
+{
+	(void)arg;
+	while (1){
+		sleep(1000);
+		print_stats_map_info();
 	}
 	return NULL;
 }
@@ -393,6 +405,10 @@ int main(int argc, char **argv)
 	setlocale(LC_ALL, "");
 
 	int ret = pthread_create(&pt, NULL, poller, NULL);
+	if (ret)
+		exit_with_error(ret);
+	
+	int ret = pthread_create(&pt, NULL, poller_stats, NULL);
 	if (ret)
 		exit_with_error(ret);
 

@@ -10,6 +10,8 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 
+#include "common_defs.h"
+
 //define the max action mode of bpf map
 #ifndef XDP_ACTION_MAX
 #define XDP_ACTION_MAX XDP_REDIRECT + 1
@@ -33,12 +35,7 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 	.max_entries= XDP_ACTION_MAX,
 };
 
-//map data
-struct datarec{
-	__u64 rx_packets;
-	__u32 saddr;
-	__u32 daddr;
-};
+
 //status map
 struct bpf_map_def SEC("maps") xdp_stats_map =
 {	

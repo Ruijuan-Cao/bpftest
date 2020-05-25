@@ -34,6 +34,9 @@ char *opt_progsec;
 
 u32 prog_id;
 
+//stats_map
+datarec *stats_rec;
+
 void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
 	printf("----load xdp program----\n");
 
@@ -292,6 +295,32 @@ void configure_bpf_map(struct bpf_object *bpf_obj){
 	}
 }
 
+//print addr and count
+void configure_status_map(struct bpf_object *bpf_obj){
+	//bpf stats map
+	struct bpf_map *stats_map = bpf_object__find_map_by_name(bpf_obj, "bpf_stats_map");
+	int stats_map_fd = bpf_map__fd(stats_map);
+	if(stats_map < 0){
+		fprintf(stderr, "%s\n", strerror(stats_map_fd));
+		exit(EXIT_FAILURE);
+	} 
+
+	//get map info
+	struct bpf_map_info *stats_map_info;
+	__u32 info_len = sizeof(*stats_map_info);
+	int err = bpf_obj_get_info_by_fd(stats_map_fd, stats_map_info, &info_len);
+	if (err){
+		fprintf(stderr, "%s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	//print info
+	__u32 key = XDP_PASS;
+	if ((bpf_map_lookup_elem(stats_map_fd, &key, stats_rec)) != 0) {
+		fprintf(stderr, "ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
+	}
+}
+
 //kick_tx, keep wake
 void kick_tx(struct xsk_socket_info *xsk){
 	int ret;
@@ -500,6 +529,11 @@ void dump_stats(){
 		xsks[i]->pre_rx_npkts = xsks[i]->rx_npkts;
 		xsks[i]->pre_tx_npkts = xsks[i]->tx_npkts;
 	}
+}
+
+void print_stats_map_info(){
+	//print stats map info
+	printf("stats_map----%d----%x\n", value.rx_packets, value.saddr);
 }
 
 void __exit_with_error(int error, const char *file, const char *func, int line){
