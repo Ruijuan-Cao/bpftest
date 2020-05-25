@@ -211,7 +211,7 @@ int xdp_filter(struct xdp_md *ctx)
 	//ipv4
 	if (h_proto == htons(ETH_P_IP)){
 		struct iphdr *iph = data + addr_off;
-		struct udphdr *udph = iph + sizeof(struct iphdr);
+		struct udphdr *udph = data + addr_off + sizeof(struct iphdr);
 		if (udph + 1 > (struct udphdr *)data_end){
 			lock_xadd(&rec->rx_packets, 1);
 			return XDP_PASS;
@@ -227,7 +227,7 @@ int xdp_filter(struct xdp_md *ctx)
 	}
 	else if (h_proto == htons(ETH_P_IPV6)){
 		struct ipv6hdr * ipv6h = data + addr_off;
-		struct udphdr * udph = ipv6h + sizeof(struct ipv6hdr);
+		struct udphdr * udph = data + addr_off + sizeof(struct ipv6hdr);
 		if (udph + 1 > (struct udphdr *)data_end)
 			return XDP_PASS;
 		if (ipv6h->nexthdr == IPPROTO_UDP 
