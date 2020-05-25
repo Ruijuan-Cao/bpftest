@@ -407,10 +407,10 @@ int main(int argc, char **argv)
 	int ret = pthread_create(&pt, NULL, poller, NULL);
 	if (ret)
 		exit_with_error(ret);
-	
-	int ret = pthread_create(&pt, NULL, poller_stats, NULL);
-	if (ret)
-		exit_with_error(ret);
+
+	int ret2 = pthread_create(&pt, NULL, poller_stats, NULL);
+	if (ret2)
+		exit_with_error(ret2);
 
 	pre_time = get_nsecs();
 
