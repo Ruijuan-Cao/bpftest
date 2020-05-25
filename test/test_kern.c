@@ -32,10 +32,10 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 //status map
 struct bpf_map_def SEC("maps") xdp_stats_map =
 {	
-	.type 		= BPF_MAP_TYPE_ARRAY;
-	.key_size	= sizeof(u32);
-	.value_size = sizeof(struct data);
-	.max_entries = XDP_ACTION_MAX;
+	.type 		= BPF_MAP_TYPE_ARRAY,
+	.key_size	= sizeof(u32),
+	.value_size = sizeof(struct data),
+	.max_entries = XDP_ACTION_MAX,
 };
 
 //fetch and add value to ptr
@@ -174,10 +174,11 @@ int xdp_parser_func(struct xdp_md *ctx)
 SEC("filter")
 int xdp_filter(struct xdp_md *ctx)
 {
-
 	//get map pointer
-	struct datarec *rec;
-	rec = bpf_map_lookup_elem(&xdp)
+	__u32 key = XDP_PASS;
+	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
+	if (!rec)
+		return XDP_ABORTED;
 
 	//get data header
 	void *data_end = (void *)(long)ctx->data_end;
@@ -209,7 +210,7 @@ int xdp_filter(struct xdp_md *ctx)
 	//ipv4
 	if (h_proto == htons(ETH_P_IP)){
 		struct iphdr *iph = data + addr_off;
-		struct udphdr *udph = iph + sizeof(iphdr);
+		struct udphdr *udph = iph + sizeof(struct iphdr);
 		if (udph + 1 > (struct udphdr *)data_end){
 			lock_xadd(&rec->rx_packets, 1);
 			return XDP_PASS;
@@ -225,14 +226,14 @@ int xdp_filter(struct xdp_md *ctx)
 	}
 	else if (h_proto == htons(ETH_P_IPV6)){
 		struct ipv6hdr * ipv6h = data + addr_off;
-		struct udphdr * udph + sizeof(stuct ipv6hdr);
+		struct udphdr * udph = ipv6h + sizeof(struct ipv6hdr);
 		if (udph + 1 > (struct udphdr *)data_end)
-			return XDP_PASSl;
+			return XDP_PASS;
 		if (ipv6h->nexthdr == IPPROTO_UDP 
-			&& ip6h->daddr.s6_addr[0] = 0xfd
-			&& ip6h->daddr.s6_addr[1] = 0x00
+			&& ipv6h->daddr.s6_addr[0] = 0xfd
+			&& ipv6h->daddr.s6_addr[1] = 0x00
 			&& udph->dest == htons(12345)){
-			rec->daddr = htonl(ip6h->daddr);
+			rec->daddr = htonl(ipv6h->daddr);
 			return XDP_DROP;	
 		}
 	}
