@@ -33,6 +33,12 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 	.max_entries= XDP_ACTION_MAX,
 };
 
+//map data
+struct datarec{
+	__u64 rx_packets;
+	__u32 saddr;
+	__u32 daddr;
+};
 //status map
 struct bpf_map_def SEC("maps") xdp_stats_map =
 {	
@@ -40,13 +46,6 @@ struct bpf_map_def SEC("maps") xdp_stats_map =
 	.key_size	= sizeof(__u32),
 	.value_size = sizeof(struct datarec),
 	.max_entries = XDP_ACTION_MAX,
-};
-
-//map data
-struct datarec{
-	__u64 rx_packets;
-	__u32 saddr;
-	__u32 daddr;
 };
 
 //fetch and add value to ptr
