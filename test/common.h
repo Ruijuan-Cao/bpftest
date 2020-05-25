@@ -43,9 +43,9 @@ static const char pkt_data[] =
 
 //map data
 struct datarec{
-	u64 rx_packets,
-	u32 saddr,
-	u32 daddr,
+	u64 rx_packets;
+	u32 saddr;
+	u32 daddr;
 };
 
 //icmp 
