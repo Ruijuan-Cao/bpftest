@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "operation.h"
+#include "common_defs.h"
 
 int opt_timeout = 1000;
 extern enum benchmark_type opt_bench;
@@ -325,6 +326,7 @@ static void l2fwd_all(){
 	}
 }
 
+
 int main(int argc, char **argv)
 {
 	struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
@@ -354,11 +356,14 @@ int main(int argc, char **argv)
 	if (cfg.do_unload)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 	printf("after Unload\n");
-printf("-----%d----\n", opt_xsks_num);
-	if(opt_xsks_num > 1)
-{		load_bpf_program(argv, &bpf_obj);
-	printf("after load_bpf_program\n");
-}	//config & create umem
+	
+	printf("-----%d----\n", opt_xsks_num);
+	if(opt_xsks_num > 1){
+		load_bpf_program(argv, &bpf_obj);
+		printf("after load_bpf_program\n");
+	}	
+
+	//config & create umem
 	struct xsk_umem_info *umem = xsk_configure_umem();
 	printf("after xsk_configure_umem\n");
 	//rx or tx
