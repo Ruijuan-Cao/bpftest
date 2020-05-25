@@ -306,6 +306,7 @@ void configure_status_map(struct bpf_object *bpf_obj){
 	} 
 
 	//get map info
+	/*
 	struct bpf_map_info *stats_map_info;
 	__u32 info_len = sizeof(*stats_map_info);
 	int err = bpf_obj_get_info_by_fd(stats_map_fd, stats_map_info, &info_len);
@@ -313,7 +314,8 @@ void configure_status_map(struct bpf_object *bpf_obj){
 		fprintf(stderr, "%s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
+	*/
+	
 	//print info
 	__u32 key = XDP_PASS;
 	if ((bpf_map_lookup_elem(stats_map_fd, &key, stats_rec)) != 0) {
@@ -533,7 +535,7 @@ void dump_stats(){
 
 void print_stats_map_info(){
 	//print stats map info
-	printf("stats_map----%d----%x\n", stats_rec->rx_packets, stats_rec->saddr);
+	printf("stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
 }
 
 void __exit_with_error(int error, const char *file, const char *func, int line){
