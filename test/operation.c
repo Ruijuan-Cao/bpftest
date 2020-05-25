@@ -35,7 +35,7 @@ char *opt_progsec;
 u32 prog_id;
 
 //stats_map
-datarec *stats_rec;
+struct datarec *stats_rec;
 
 void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
 	printf("----load xdp program----\n");
@@ -533,7 +533,7 @@ void dump_stats(){
 
 void print_stats_map_info(){
 	//print stats map info
-	printf("stats_map----%d----%x\n", value.rx_packets, value.saddr);
+	printf("stats_map----%d----%x\n", stats_rec->rx_packets, stats_rec->saddr);
 }
 
 void __exit_with_error(int error, const char *file, const char *func, int line){
