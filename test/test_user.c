@@ -182,14 +182,11 @@ static bool process_packet_l2fwd(struct xsk_socket_info *xsk, uint64_t addr, uin
 	struct ethhdr *eth = (struct ethhdr *) pkt;
 	
 	//get ip addr
-		printf("Source host:%s\n",eth->h_source);
-        	printf("Dest host:%s\n", eth->h_dest);
-
-	struct iphdr *iph;
-	iph = (struct iphdr*)(eth + sizeof(struct ethhdr));
-	//only ipv4 and no option
-	//if (iph->version == 4 && iph->ihl == 5) {
-		printf("---------Source host:%x\n",iph->saddr);
+	for(int i = 0;i < 6; i++){
+		printf("---%d---\n", i);
+		printf("Source host:%s, %d\n",eth->h_source, eth->h_source[i]);
+        	printf("Dest host:%s, %d\n", eth->h_dest, eth->h_dest[i]);
+	}
 
 	struct ipv6hdr *ipv6 = (struct ipv6hdr *) (eth + 1);
 	struct icmp6hdr *icmp = (struct icmp6hdr *) (ipv6 + 1);
