@@ -34,13 +34,6 @@ enum benchmark_type {
 	BENCH_L2FWD = 2,
 };
 
-//map data
-struct datarec{
-	u64 rx_packets;
-	u32 saddr;
-	u32 daddr;
-};
-
 //pkt_data
 static const char pkt_data[] =
 	"\x3c\xfd\xfe\x9e\x7f\x71\xec\xb1\xd7\x98\x3a\xc0\x08\x00\x45\x00"
