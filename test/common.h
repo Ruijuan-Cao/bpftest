@@ -41,6 +41,13 @@ static const char pkt_data[] =
 	"\x1e\x04\x10\x92\x10\x92\x00\x1a\x6d\xa3\x34\x33\x1f\x69\x40\x6b"
 	"\x54\x59\xb6\x14\x2d\x11\x44\xbf\xaf\xd9\xbe\xaa";
 
+//map data
+struct datarec{
+	u64 rx_packets;
+	u32 saddr;
+	u32 daddr;
+};
+
 //icmp 
 static inline __sum16 csum16_add(__sum16 csum, __be16 addend)
 {
