@@ -22,6 +22,10 @@
 #define VLAN_MAX_DEPTH 4
 #endif
 
+#define htons(x) ((__be16)___constant_swab16((x)))
+#define htonl(x) ((__be32)___constant_swab32((x)))
+
+
 //map for count the passed packet
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
@@ -169,9 +173,6 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//return action;
 	//return xdp_stats_record_action(ctx, action); 
 }
-
-#define htons(x) ((__be16)___constant_swab16((x)))
-#define htonl(x) ((__be32)___constant_swab32((x)))
 
 SEC("filter")
 int xdp_filter(struct xdp_md *ctx)
