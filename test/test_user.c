@@ -39,7 +39,7 @@ static void *poller_stats(void *arg)
 {
 	(void)arg;
 	while (1){
-		sleep(1000);
+		sleep(1);
 		print_stats_map_info();
 	}
 	return NULL;
@@ -351,7 +351,6 @@ int main(int argc, char **argv)
 
 	bool rx = false, tx = false;
 	struct bpf_object *bpf_obj;
-	pthread_t pt;
 
 	//command line option for changing config
 	printf("start command line\n");
@@ -404,11 +403,12 @@ int main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
+	pthread_t pt, pt2;
 	int ret = pthread_create(&pt, NULL, poller, NULL);
 	if (ret)
 		exit_with_error(ret);
 
-	int ret2 = pthread_create(&pt, NULL, poller_stats, NULL);
+	int ret2 = pthread_create(&pt2, NULL, poller_stats, NULL);
 	if (ret2)
 		exit_with_error(ret2);
 
