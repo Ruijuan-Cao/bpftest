@@ -297,6 +297,8 @@ void configure_bpf_map(struct bpf_object *bpf_obj){
 
 //print addr and count
 void configure_status_map(struct bpf_object *bpf_obj){
+	if(!bpf_obj)
+		printf("bpf_obj is NULL---\n");
 	//bpf stats map
 	struct bpf_map *stats_map = bpf_object__find_map_by_name(bpf_obj, "bpf_stats_map");
 	int stats_map_fd = bpf_map__fd(stats_map);
