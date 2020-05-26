@@ -43,7 +43,8 @@ struct bpf_map_def SEC("maps") xsks_map = {
 struct bpf_map_def SEC("maps") xdp_stats_map = {
 	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
 	.key_size    = sizeof(int),
-	.value_size  = sizeof(__u32),
+    .value_size  = sizeof(struct datarec),
+	//.value_size  = sizeof(__u32),
 	.max_entries = 64,
 };
 
@@ -77,13 +78,13 @@ struct vlan_hdr {
 SEC("xdp_filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
-    //get map pointer
-    /*
+    //get map pointer]
+
     __u32 key = XDP_PASS;
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
     if (!rec)
         return XDP_ABORTED;
-        */
+    
 
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
@@ -143,17 +144,18 @@ int xdp_filter_func(struct xdp_md *ctx)
         }
     }
 
-    //lock_xadd(&rec->rx_packets, 1);
-    int index = ctx->rx_queue_index;
-    __u32 *pkt_count;
+    lock_xadd(&rec->rx_packets, 1);
 
+    int index = ctx->rx_queue_index;
+    /*__u32 *pkt_count;
     pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
     if (pkt_count) {
 
-        /* We pass every other packet */
+        // We pass every other packet 
         if ((*pkt_count)++ & 1)
             return XDP_PASS;
     }
+    */
 
     /* A set entry here means that the correspnding queue_id
      * has an active AF_XDP socket bound to it. */

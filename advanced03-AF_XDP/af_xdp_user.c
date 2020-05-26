@@ -49,6 +49,7 @@ struct stats_record {
 	uint64_t rx_bytes;
 	uint64_t tx_packets;
 	uint64_t tx_bytes;
+	struct datarec total;
 };
 
 struct xsk_socket_info {
@@ -469,6 +470,86 @@ static void stats_print(struct stats_record *stats_rec,
 	printf("\n");
 }
 
+static void stats_print(struct stats_record *stats_rec,
+			struct stats_record *stats_prev)
+{
+	double period;
+	__u64 packets;
+	double pps; /* packets per sec */
+
+	/* Assignment#2: Print other XDP actions stats  */
+	{
+		char *fmt = "%-12s %'11lld pkts (%'10.0f pps)"
+			//" %'11lld Kbytes (%'6.0f Mbits/s)"
+			" period:%f\n";
+		const char *action = action2str(XDP_PASS);
+
+		period = 1.00; 	//calc_period(stats_rec, stats_prev);
+		if (period == 0)
+		       return;
+
+		packets = stats_rec->total.rx_packets - stats_prev->total.rx_packets;
+		pps     = packets / period;
+printf("---%lld----%x-----\n",stats_rec->total.rx_packets, stats_rec->total.saddr);
+		printf(fmt, action, stats_rec->total.rx_packets, pps, period);
+	}
+}
+
+static void stats_collect(int map_fd, __u32 key, struct stats_record *rec)
+{
+	__u32 key = XDP_PASS;
+	struct datarec value;
+
+	/* Get time as close as possible to reading map contents */
+	rec->timestamp = gettime();
+
+	switch (map_type) {
+	case BPF_MAP_TYPE_ARRAY:
+		map_get_value_array(fd, key, &value);
+		break;
+	case BPF_MAP_TYPE_PERCPU_ARRAY:
+		/* fall-through */
+	default:
+		fprintf(stderr, "ERR: Unknown map_type(%u) cannot handle\n",
+			map_type);
+		return false;
+		break;
+	}
+
+	/* Assignment#1: Add byte counters */
+	rec->total.rx_packets = value.rx_packets;
+	rec->total.saddr = value.saddr;
+}
+
+
+static void stats_map_poll(void *arg)
+{
+	int map_fd = *arg;
+	printf("----map-fd=%d\n", map_fd);
+
+	struct stats_record prev, record = { 0 };
+
+	/* Trick to pretty printf with thousands separators use %' */
+	setlocale(LC_NUMERIC, "en_US");
+
+	/* Print stats "header" */
+	if (verbose) {
+		printf("\n");
+		printf("%-12s\n", "XDP-action");
+	}
+
+	/* Get initial reading quickly */
+	stats_collect(map_fd, BPF_MAP_TYPE_ARRAY, &record);
+	usleep(1000000/4);
+
+	while (1) {
+		prev = record; /* struct copy */
+		stats_collect(map_fd, BPF_MAP_TYPE_ARRAY, &record);
+		stats_print(&record, &prev);
+		sleep(1);
+	}
+}
+
 static void *stats_poll(void *arg)
 {
 	unsigned int interval = 2;
@@ -499,6 +580,7 @@ int main(int argc, char **argv)
 {
 	int ret;
 	int xsks_map_fd;
+	int stats_map_fd;
 	void *packet_buffer;
 	uint64_t packet_buffer_size;
 	struct rlimit rlim = {RLIM_INFINITY, RLIM_INFINITY};
@@ -548,6 +630,15 @@ int main(int argc, char **argv)
 				strerror(xsks_map_fd));
 			exit(EXIT_FAILURE);
 		}
+
+		struct bpf_map *stats_map;
+		stats_map = bpf_object__find_map_by_name(bpf_obj, "xdp_stats_map");
+		stats_map_fd = bpf_map__fd(stats_map);
+		if (stats_map_fd < 0) {
+			fprintf(stderr, "ERROR: no xsks map found: %s\n",
+				strerror(stats_map_fd));
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	/* Allow unlimited locking of memory, so all memory needed for packet
@@ -593,6 +684,19 @@ int main(int argc, char **argv)
 			fprintf(stderr, "ERROR: Failed creating statistics thread "
 				"\"%s\"\n", strerror(errno));
 			exit(EXIT_FAILURE);
+		}
+
+		//map stats thread
+		if (stats_map_fd >= 0)
+		{
+			pthread_t stats_map_poll_thread;
+			int ret2 = pthread_create(&stats_map_poll_thread, NULL, stats_map_poll,
+					     &stats_map_fd);
+			if (ret2) {
+				fprintf(stderr, "ERROR: Failed creating statistics thread "
+					"\"%s\"\n", strerror(errno));
+				exit(EXIT_FAILURE);
+			}
 		}
 	}
 
