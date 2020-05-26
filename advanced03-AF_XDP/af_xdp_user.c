@@ -189,7 +189,7 @@ static struct xsk_socket_info *xsk_configure_socket(struct config *cfg,
 	ret = xsk_socket__create(&xsk_info->xsk, cfg->ifname,
 				 cfg->xsk_if_queue, umem->umem, &xsk_info->rx,
 				 &xsk_info->tx, &xsk_cfg);
-
+	
 	if (ret)
 		goto error_exit;
 
@@ -346,7 +346,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 	if (!rcvd)
 		return;
 
-	printf("get a \n");	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
+	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
 					xsk_umem_free_frames(xsk));
 
 	if (stock_frames > 0) {
