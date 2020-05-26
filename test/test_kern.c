@@ -28,6 +28,7 @@
 #define htonl(x) ((__be32)___constant_swab32((x)))
 
 //map for count the passed packet
+/*
 struct bpf_map_def SEC("maps") xdp_pass_map =
 {
 	.type		= BPF_MAP_TYPE_ARRAY,
@@ -35,6 +36,7 @@ struct bpf_map_def SEC("maps") xdp_pass_map =
 	.value_size	= sizeof(__u64),
 	.max_entries= XDP_ACTION_MAX,
 };
+*/
 
 //status map
 struct bpf_map_def SEC("maps") xdp_stats_map =
@@ -64,14 +66,14 @@ struct vlan_hdr {
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
-	struct datarec *rec;
+	/*struct datarec *rec;
 	__u32 key = XDP_PASS;
 	rec = bpf_map_lookup_elem(&xdp_pass_map, &key);
 	if (!rec)
 		return XDP_ABORTED;
 
 	lock_xadd(&rec->rx_packets, 1);	
-
+*/
 	return XDP_PASS;
 }
 
