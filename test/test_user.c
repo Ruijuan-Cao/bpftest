@@ -369,7 +369,6 @@ int main(int argc, char **argv)
 		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
 	printf("after Unload\n");
 	
-	printf("-----%d----\n", opt_xsks_num);
 	//if(opt_xsks_num > 1){
 		load_xdp_program(argv, &bpf_obj);
 		printf("after load_bpf_program\n");

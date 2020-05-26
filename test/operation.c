@@ -112,7 +112,7 @@ void load_xdp_program(char **argv, struct bpf_object **bpf_obj){
 	 * loading this into the kernel via bpf-syscall
 	 */
 	if (bpf_prog_load_xattr(&prog_load_attr, bpf_obj, &prog_fd)){
-		fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n", xdp_filename, errno, strerror(-errno));
+		printf("ERR: loading BPF-OBJ file(%s) (%d): %s\n", xdp_filename, errno, strerror(-errno));
 		exit(EXIT_FAILURE);
 	}
 
