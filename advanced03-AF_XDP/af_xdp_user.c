@@ -339,6 +339,7 @@ static bool process_packet(struct xsk_socket_info *xsk,
 static void handle_receive_packets(struct xsk_socket_info *xsk)
 {
 	unsigned int rcvd, stock_frames, i;
+	uint32_t idx_rx = 0, idx_fq = 0;
  	int ret;
 
 	rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &idx_rx);
