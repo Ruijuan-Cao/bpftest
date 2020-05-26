@@ -60,8 +60,8 @@ clean:
 
 # make KERN_OBJ
 $(KERN_OBJ):$(KERN_OBJ:%.o=%.c)
-	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(HOSTCFLAGS) \
-		-S -emit-llvm -c $<
+	$(CLANG) -g -c -O2$(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(HOSTCFLAGS) \
+		-S -emit-llvm $<
 	$(LLC) -march=bpf -filetype=obj -o $@ $(KERN_OBJ:%.o=%.ll)
 
 # include
