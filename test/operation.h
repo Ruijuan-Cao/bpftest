@@ -100,6 +100,7 @@ struct xsk_socket_info *xsk_configure_socket(struct xsk_umem_info *umem, bool rx
 
 //configure bpf map
 void configure_bpf_map(struct bpf_object *bpf_obj);
+void configure_status_map(struct bpf_object *bpf_obj);
 
 //kick_tx, keep wake
 void kick_tx(struct xsk_socket_info *xsk);
