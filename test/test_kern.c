@@ -22,6 +22,8 @@
 #define VLAN_MAX_DEPTH 4
 #endif
 
+#define SEC(NAME) __attribute__((section(NAME), used))
+
 #define htons(x) ((__be16)___constant_swab16((x)))
 #define htonl(x) ((__be32)___constant_swab32((x)))
 
@@ -131,7 +133,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
-/*
+
 SEC("filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
@@ -202,5 +204,5 @@ int xdp_filter_func(struct xdp_md *ctx)
 	lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
 }
-*/
+
 char _license[] SEC("license") = "GPL";
