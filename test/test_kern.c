@@ -62,10 +62,10 @@ struct vlan_hdr {
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
-	struct datarec *pkt;
+	struct datarec *rec;
 	__u32 key = XDP_PASS;
-	pkt = bpf_map_lookup_elem(&bpf_pass_map, &key);
-	if (!pkt)
+	rec = bpf_map_lookup_elem(&bpf_pass_map, &key);
+	if (!rec)
 		return XDP_ABORTED;
 
 	//get data header
@@ -126,7 +126,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 		}
 	}
 
-	lock_xadd(&pkt->rx_packets, 1);	
+	lock_xadd(&rec->rx_packets, 1);	
 
 	return XDP_PASS;
 }
@@ -199,7 +199,7 @@ int xdp_filter(struct xdp_md *ctx)
 		}
 	}
 */
-	//lock_xadd(&rec->rx_packets, 1);
+	lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
 }
 
