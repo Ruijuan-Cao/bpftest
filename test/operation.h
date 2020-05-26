@@ -64,7 +64,9 @@ struct xdp_config{
 	int ifindex;
 	u32 xdp_flags;
 	bool do_unload;
+	bool reuse_maps;
 	char filename[512];
+	char pin_dir[512];
 	char progsec[32];
 };
 
@@ -84,7 +86,8 @@ void __exit_with_error(int error, const char *file, const char *func, int line);
 void normal_exit(int sig);
 
 //xdp program
-void load_bpf_program(char **argv, struct bpf_object **obj);
+struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg);
+void load_xdp_program(char **argv, struct bpf_object **obj);
 void remove_bpf_program();
 int attach_bpf_to_xdp(int ifindex, u32 xdp_flags, int prog_fd);
 int detach_bpf_off_xdp(int ifindex, u32 xdp_flags);
