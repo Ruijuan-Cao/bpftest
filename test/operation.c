@@ -537,6 +537,8 @@ void print_stats_map_info(){
 	//print stats map info
 	if (!stats_rec)
 		printf("stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
+	else
+		printf("stats_rec is NULL------\n");
 }
 
 void __exit_with_error(int error, const char *file, const char *func, int line){
