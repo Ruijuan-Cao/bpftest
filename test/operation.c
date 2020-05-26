@@ -321,6 +321,10 @@ void configure_status_map(struct bpf_object *bpf_obj){
 	if ((bpf_map_lookup_elem(stats_map_fd, &key, stats_rec)) != 0) {
 		fprintf(stderr, "ERR: bpf_map_lookup_elem failed key:0x%X\n", key);
 	}
+	if (stats_rec != NULL)
+		printf("-----stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
+	else
+		printf("----NULL-----\n");
 }
 
 //kick_tx, keep wake
