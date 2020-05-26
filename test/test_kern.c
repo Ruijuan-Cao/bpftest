@@ -133,7 +133,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 
 
 SEC("filter")
-int xdp_filter(struct xdp_md *ctx)
+int xdp_filter_func(struct xdp_md *ctx)
 {
 	//get map pointer
 	__u32 key = XDP_PASS;
