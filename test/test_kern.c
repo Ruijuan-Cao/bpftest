@@ -58,11 +58,6 @@ struct bpf_map_def SEC("maps") xdp_stats_map =
  *	@h_vlan_encapsulated_proto: packet type ID or len
  */
 
-struct vlan_hdr {
-	__be16	h_vlan_TCI;
-	__be16	h_vlan_encapsulated_proto;
-};
-
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
@@ -76,6 +71,12 @@ int xdp_pass_func(struct xdp_md *ctx)
 */
 	return XDP_PASS;
 }
+
+
+struct vlan_hdr {
+	__be16	h_vlan_TCI;
+	__be16	h_vlan_encapsulated_proto;
+};
 
 SEC("xdp_filter")
 int xdp_filter_func(struct xdp_md *ctx)
