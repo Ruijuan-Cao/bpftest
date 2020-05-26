@@ -48,6 +48,7 @@ struct bpf_map_def SEC("maps") xdp_stats_map =
 #define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
 #endif
 
+/*
 SEC("xdp_pass")
 int xdp_pass_func(struct xdp_md *ctx)
 {	
@@ -61,7 +62,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 
 	return XDP_PASS;
 }
-
+*/
 
 /*
  *	struct vlan_hdr - vlan header
