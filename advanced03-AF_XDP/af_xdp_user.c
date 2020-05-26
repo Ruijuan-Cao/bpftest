@@ -30,6 +30,7 @@
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
+#include "common_defs.h"
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -470,7 +471,7 @@ static void stats_print(struct stats_record *stats_rec,
 	printf("\n");
 }
 
-static void stats_print(struct stats_record *stats_rec,
+static void map_stats_print(struct stats_record *stats_rec,
 			struct stats_record *stats_prev)
 {
 	double period;
@@ -495,7 +496,7 @@ printf("---%lld----%x-----\n",stats_rec->total.rx_packets, stats_rec->total.sadd
 	}
 }
 
-static void stats_collect(int map_fd, __u32 key, struct stats_record *rec)
+static void stats_collect(int map_fd, __u32 map_type, struct stats_record *rec)
 {
 	__u32 key = XDP_PASS;
 	struct datarec value;
@@ -505,7 +506,7 @@ static void stats_collect(int map_fd, __u32 key, struct stats_record *rec)
 
 	switch (map_type) {
 	case BPF_MAP_TYPE_ARRAY:
-		map_get_value_array(fd, key, &value);
+		map_get_value_array(map_fd, key, &value);
 		break;
 	case BPF_MAP_TYPE_PERCPU_ARRAY:
 		/* fall-through */
@@ -524,7 +525,7 @@ static void stats_collect(int map_fd, __u32 key, struct stats_record *rec)
 
 static void stats_map_poll(void *arg)
 {
-	int map_fd = *arg;
+	int map_fd = arg;
 	printf("----map-fd=%d\n", map_fd);
 
 	struct stats_record prev, record = { 0 };
@@ -545,7 +546,7 @@ static void stats_map_poll(void *arg)
 	while (1) {
 		prev = record; /* struct copy */
 		stats_collect(map_fd, BPF_MAP_TYPE_ARRAY, &record);
-		stats_print(&record, &prev);
+		map_stats_print(&record, &prev);
 		sleep(1);
 	}
 }
