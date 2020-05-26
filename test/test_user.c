@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 		.ifindex = -1,
 		.do_unload = false,
 		.filename = "",
-		//.progsec = "filter"
+		.progsec = "filter"
 	};
 
 	bool rx = false, tx = false;
@@ -365,9 +365,9 @@ int main(int argc, char **argv)
 	}
 	
 	// Unload XDP program if requested 
-	if (cfg.do_unload)
-		return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
-	printf("after Unload\n");
+	//if (cfg.do_unload)
+	//	return detach_bpf_off_xdp(cfg.ifindex, cfg.xdp_flags);
+	//printf("after Unload\n");
 	
 	//if(opt_xsks_num > 1){
 		load_xdp_program(argv, &bpf_obj);
