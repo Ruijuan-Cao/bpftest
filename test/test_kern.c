@@ -120,11 +120,15 @@ int xdp_pass_func(struct xdp_md *ctx)
 		if (udph + 1 > (struct udphdr *)data_end)
 			return XDP_PASS;
 		if (ipv6h->nexthdr == IPPROTO_UDP 
-			&& ipv6h->daddr.s6_addr[0] == 0xfd
+			&& ipv6h->daddr.s6_addr[0] == 0xfc
 			&& ipv6h->daddr.s6_addr[1] == 0x00
 			&& udph->dest == htons(12345)){
 			//rec->daddr = htonl(ipv6h->daddr);
 			return XDP_DROP;	
+		}
+		if (ipv6h->saddr.s6_addr[0] == 0xfc
+			&& ipv6h->saddr.s6_addr[1] == 0x00){
+			return XDP_DROP;
 		}
 	}
 
