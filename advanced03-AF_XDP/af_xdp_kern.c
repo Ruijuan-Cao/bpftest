@@ -78,10 +78,12 @@ SEC("xdp_filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
     //get map pointer
+    /*
     __u32 key = XDP_PASS;
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
     if (!rec)
         return XDP_ABORTED;
+        */
 
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
@@ -91,7 +93,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     //check size
     __u64 addr_off = sizeof(*eth);
     if (data + addr_off > data_end){
-        lock_xadd(&rec->rx_packets, 1);
+        //lock_xadd(&rec->rx_packets, 1);
         return XDP_PASS;
     }
 
@@ -103,7 +105,7 @@ int xdp_filter_func(struct xdp_md *ctx)
             struct vlan_hdr *vhdr = data + addr_off;
             addr_off += sizeof(struct vlan_hdr);
             if (data + addr_off > data_end){
-                lock_xadd(&rec->rx_packets, 1);
+                //lock_xadd(&rec->rx_packets, 1);
                 return XDP_PASS;
             }
             h_proto = vhdr->h_vlan_encapsulated_proto;
@@ -115,7 +117,7 @@ int xdp_filter_func(struct xdp_md *ctx)
         struct iphdr *iph = data + addr_off;
         struct udphdr *udph = data + addr_off + sizeof(struct iphdr);
         if (udph + 1 > (struct udphdr *)data_end){
-            lock_xadd(&rec->rx_packets, 1);
+            //lock_xadd(&rec->rx_packets, 1);
             return XDP_PASS;
         }
         //UDP
@@ -123,7 +125,7 @@ int xdp_filter_func(struct xdp_md *ctx)
             //source address
             && (htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300
             && udph->dest == htons(12345) ){
-                rec->saddr = htonl(iph->saddr);
+                //rec->saddr = htonl(iph->saddr);
                 return XDP_DROP;
         }
     }
@@ -141,7 +143,7 @@ int xdp_filter_func(struct xdp_md *ctx)
         }
     }
 
-    lock_xadd(&rec->rx_packets, 1);
+    //lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
 }
 
