@@ -1,7 +1,7 @@
 XDP_TARGETS  := xdp_prog_kern
 USER_TARGETS := xdp_load_and_stats
 
-BINARY := stats
+BINARY := xdp_load_and_stats
 KERN_OBJ := xdp_prog_kern.o
 
 # tools
