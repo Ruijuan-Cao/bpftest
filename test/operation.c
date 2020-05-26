@@ -315,7 +315,7 @@ void configure_status_map(struct bpf_object *bpf_obj){
 		exit(EXIT_FAILURE);
 	}
 	*/
-	
+
 	//print info
 	__u32 key = XDP_PASS;
 	if ((bpf_map_lookup_elem(stats_map_fd, &key, stats_rec)) != 0) {
@@ -535,7 +535,8 @@ void dump_stats(){
 
 void print_stats_map_info(){
 	//print stats map info
-	printf("stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
+	if (!stats_rec)
+		printf("stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
 }
 
 void __exit_with_error(int error, const char *file, const char *func, int line){
