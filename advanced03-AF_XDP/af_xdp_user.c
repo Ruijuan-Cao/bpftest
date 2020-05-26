@@ -506,7 +506,7 @@ static void stats_collect(int map_fd, __u32 map_type, struct stats_record *rec)
 
 	switch (map_type) {
 	case BPF_MAP_TYPE_ARRAY:
-		map_get_value_array(map_fd, key, &value);
+		bpf_map_lookup_elem(map_fd, &key, value);
 		break;
 	case BPF_MAP_TYPE_PERCPU_ARRAY:
 		/* fall-through */
