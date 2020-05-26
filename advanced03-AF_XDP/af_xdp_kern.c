@@ -145,9 +145,9 @@ int xdp_filter_func(struct xdp_md *ctx)
     }
 
     lock_xadd(&rec->rx_packets, 1);
-/*
+
     int index = ctx->rx_queue_index;
-    __u32 *pkt_count;
+    /*__u32 *pkt_count;
     pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
     if (pkt_count) {
 
@@ -155,13 +155,13 @@ int xdp_filter_func(struct xdp_md *ctx)
         if ((*pkt_count)++ & 1)
             return XDP_PASS;
     }
-
+    */
 
     // A set entry here means that the correspnding queue_id
      // has an active AF_XDP socket bound to it. 
     if (bpf_map_lookup_elem(&xsks_map, &index))
         return bpf_redirect_map(&xsks_map, index, 0);
-*/
+
     return XDP_PASS;
 }
 
