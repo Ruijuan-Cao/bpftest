@@ -37,7 +37,61 @@ u32 prog_id;
 //stats_map
 struct datarec *stats_rec;
 
-void load_bpf_program(char **argv, struct bpf_object **bpf_obj){
+
+//load normal bpf and xdp attach to kernel
+struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
+	struct bpf_program *bpf_prog;
+	struct bpf_object *bpf_obj;
+	int offload_ifindex = -1;
+	int prog_fd = -1;
+	int err;
+
+	//if flag indicate hardware offload, supply ifindex;
+	if (cfg->xdp_flags & XDP_FLAGS_HW_MODE)
+		offload_ifindex = cfg->ifindex;
+
+	//load the BPF-ELF object file and get back libbpf bpf_object
+	if (cfg->reuse_maps)
+		bpf_obj = load_bpf_object_file_reuse_maps(cfg->filename, offload_ifindex, cfg->pin_dir);
+	else
+		bpf_obj = load_bpf_objcet_file(cfg->filename, offload_ifindex);
+	if (!bpf_obj){
+		printf("ERR:loading bpf file:%s\n", cfg->filename);
+		exit(EXIT_FAILURE);
+	}
+
+	//After above, all prog have been loaded into the kernel, and evaluated by the verifier, 
+	//Only one of these gets attached to XDP hook, the others will get freed once exit.
+	if (cfg->progsec[0])
+		bpf_prog = bpf_object__find_program_by_title(bpf_obj, cfg->progsec);
+	else
+		bpf_prog = bpf_program__next(NULL, bpf_obj);
+	if (!bpf_prog){
+		printf("ERR:fail to find program in ELF section '%s'\n", cfg->progsec);
+		exit(EXIT_FAILURE);
+	}
+
+	//why copy
+	printf("Before copy: %s\n", cfg->progsec);
+	strncpy(cfg->progsec, bpf_program__title(bpf_prog, false), sizeof(cfg->progsec));
+	printf("After copy: %s\n", cfg->progsec);
+
+	//get prog file-descriptor
+	prog_fd = bpf_program__fd(bpf_prog);
+	if (prog_fd <= 0){
+		printf("ERR:bpf_program__fd failed\n");
+		exit(EXIT_FAILURE);
+	}
+
+	//Now, only loaded by kernel and get prog_fd, next attach the fd to kernel hook
+	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
+	if (err)
+		exit(err);
+
+	return bpf_obj;
+}
+
+void load_xdp_program(char **argv, struct bpf_object **bpf_obj){
 	printf("----load xdp program----\n");
 
 	//load bpf object
