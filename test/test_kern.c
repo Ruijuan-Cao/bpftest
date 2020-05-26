@@ -133,7 +133,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
-SEC("filter")
+SEC("xdp_filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
 	//get map pointer
@@ -204,7 +204,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     return XDP_PASS;
 }
 
-SEC("xxx")
+SEC("xdp_xxx")
 int just_test(struct xdp_md *ctx){
 	return XDP_PASS;
 }
