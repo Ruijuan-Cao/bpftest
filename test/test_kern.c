@@ -131,7 +131,7 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
-
+/*
 SEC("filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
@@ -140,7 +140,7 @@ int xdp_filter_func(struct xdp_md *ctx)
 	struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
 	if (!rec)
 		return XDP_ABORTED;
-/*
+
 	//get data header
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
@@ -198,9 +198,9 @@ int xdp_filter_func(struct xdp_md *ctx)
 			return XDP_DROP;	
 		}
 	}
-*/
+
 	lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
 }
-
+*/
 char _license[] SEC("license") = "GPL";
