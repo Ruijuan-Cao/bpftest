@@ -21,7 +21,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "common_kern_user.h"
-#include "bpf_util.h" /* bpf_num_possible_cpus */
+//#include "bpf_util.h" /* bpf_num_possible_cpus */
 
 static const char *default_filename = "xdp_prog_kern.o";
 static const char *default_progsec = "xdp_stats1";
@@ -135,7 +135,7 @@ static void stats_print(struct stats_record *stats_rec,
 
 		packets = rec->total.rx_packets - prev->total.rx_packets;
 		pps     = packets / period;
-printf("---%d----%x-----\n",rec->total.rx_packets, rec->total.saddr);
+printf("---%lld----%x-----\n",rec->total.rx_packets, rec->total.saddr);
 		printf(fmt, action, rec->total.rx_packets, pps, period);
 	}
 }
@@ -270,7 +270,7 @@ static int __check_map_fd_info(int map_fd, struct bpf_map_info *info,
 
 int main(int argc, char **argv)
 {
-	printf("size=%d, %d, %d\n", sizeof(struct datarec), sizeof(__u64), sizeof(__u32));
+	printf("size=%ld, %ld, %ld\n", sizeof(struct datarec), sizeof(__u64), sizeof(__u32));
 	printf("----xdp action----%d---%d-\n", XDP_ACTION_MAX, XDP_REDIRECT);
 	struct bpf_map_info map_expect = { 0 };
 	struct bpf_map_info info = { 0 };
@@ -297,7 +297,8 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);printf("------xdp flags----%d\n", cfg.xdp_flags);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
+printf("------xdp flags----%d\n", cfg.xdp_flags);
 	bpf_obj = load_bpf_and_xdp_attach(&cfg);
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
