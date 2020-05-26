@@ -199,7 +199,7 @@ int xdp_filter(struct xdp_md *ctx)
 		}
 	}
 */
-	lock_xadd(&rec->rx_packets, 1);
+	//lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
 }
 
