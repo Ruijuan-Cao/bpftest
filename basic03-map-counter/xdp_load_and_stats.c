@@ -297,8 +297,7 @@ int main(int argc, char **argv)
 		return EXIT_FAIL_OPTION;
 	}
 	if (cfg.do_unload)
-		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);
-printf("------xdp flags----%d\n", cfg.xdp_flags);
+		return xdp_link_detach(cfg.ifindex, cfg.xdp_flags, 0);printf("------xdp flags----%d\n", cfg.xdp_flags);
 	bpf_obj = load_bpf_and_xdp_attach(&cfg);
 	if (!bpf_obj)
 		return EXIT_FAIL_BPF;
