@@ -25,6 +25,7 @@
 #define htons(x) ((__be16)___constant_swab16((x)))
 #define htonl(x) ((__be32)___constant_swab32((x)))
 
+
 //map for count the passed packet
 struct bpf_map_def SEC("maps") bpf_pass_map =
 {
@@ -33,6 +34,7 @@ struct bpf_map_def SEC("maps") bpf_pass_map =
 	.value_size	= sizeof(__u64),
 	.max_entries= XDP_ACTION_MAX,
 };
+
 
 //status map
 struct bpf_map_def SEC("maps") xdp_stats_map =
@@ -62,6 +64,10 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
+//header cursor to track current parsing position
+struct hdr_cursor{
+	void *pos;
+};
 
 /*
  *	struct vlan_hdr - vlan header
@@ -73,6 +79,95 @@ struct vlan_hdr {
 	__be16	h_vlan_TCI;
 	__be16	h_vlan_encapsulated_proto;
 };
+
+static __always_inline int proto_is_vlan(__u16 h_proto)
+{
+	return !!(h_proto == bpf_htons(ETH_P_8021Q) ||
+		  h_proto == bpf_htons(ETH_P_8021AD));
+}
+
+//parse ethhdr
+static __always_inline int parse_ethhdr(struct hdr_cursor *hc, void *data_end, struct ethhdr **ethhdr)
+{
+	struct ethhdr *eth = hc->pos;
+	int hdr_size = sizeof(*eth);
+
+	if (hc->pos + 1 > data_end)
+		return -1;
+	
+	//update the header cursor
+	hc->pos += hdr_size;
+	*ethhdr = eth;
+
+	__u16 h_proto;
+	h_proto = eth->h_proto;
+
+	/*
+	struct vlan_hdr *vlh;
+	vlh = hc->pos;
+
+	// Use loop unrolling to avoid the verifier restriction on loops;
+	// support up to VLAN_MAX_DEPTH layers of VLAN encapsulation.
+	#pragma unroll
+	for (int i = 0; i < VLAN_MAX_DEPTH; i++) {
+		if (!proto_is_vlan(h_proto))
+			break;
+
+		if (vlh + 1 > data_end)
+			break;
+
+		h_proto = vlh->h_vlan_encapsulated_proto;
+		vlh++;
+	}
+
+	hc->pos = vlh;
+	*/
+	return h_proto;
+}
+
+
+//filter ipv6
+SEC("xdp_ipv6_pass")
+int xdp_parser_func(struct xdp_md *ctx)
+{
+	//return XDP_DROP;
+	void *data = (void *)(long)ctx->data;
+	void *data_end = (void *)(long)ctx->data_end;
+
+	//start new header cursor postion at data start
+	struct hdr_cursor hc = {.pos = data};
+
+	//parse proto
+	struct ethhdr *eth;
+	int proto = parse_ethhdr(&hc, data_end, &eth);
+	/*
+	struct ethhdr *eth = hc.pos;
+        int hdr_size = sizeof(*eth);
+
+        if (hc.pos + 1 > data_end)
+                return -1;
+
+        //update the header cursor
+        hc.pos += hdr_size;
+
+        __u16 h_proto;
+        h_proto = eth->h_proto;	
+	*/
+	int x = 0;
+	__u32 action = XDP_PASS;
+	//proto = parse_ethhdr(&hc, data_end, &eth);
+	//if(bpf_htons(proto) != ETH_P_IPV6)
+	if(bpf_ntohs(proto) != ETH_P_IP)
+		x = 1;
+		//action = XDP_DROP;;
+	//if(proto != bpf_htons(ETH_P_IP))
+	if(eth->h_proto > 0)
+		return XDP_DROP;
+	else
+	return XDP_PASS;
+	//return action;
+	//return xdp_stats_record_action(ctx, action); 
+}
 
 SEC("filter")
 int xdp_filter(struct xdp_md *ctx)

@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 		.ifindex = -1,
 		.do_unload = false,
 		.filename = "",
-		.progsec = "filter1"
+		.progsec = "filter"
 	};
 
 	bool rx = false, tx = false;
