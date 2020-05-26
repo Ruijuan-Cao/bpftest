@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 		.ifindex = -1,
 		.do_unload = false,
 		.filename = "",
-		.progsec = "xdp_filter"
+		.progsec = "filter1"
 	};
 
 	bool rx = false, tx = false;

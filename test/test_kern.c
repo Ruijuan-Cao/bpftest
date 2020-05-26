@@ -169,7 +169,7 @@ int xdp_parser_func(struct xdp_md *ctx)
 	//return xdp_stats_record_action(ctx, action); 
 }
 
-SEC("xdp_filter")
+SEC("filter1")
 int xdp_filter(struct xdp_md *ctx)
 {
 	//get map pointer
