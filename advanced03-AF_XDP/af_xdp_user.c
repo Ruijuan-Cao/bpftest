@@ -516,7 +516,6 @@ static void stats_collect(int map_fd, __u32 map_type, struct stats_record *rec)
 		return false;
 		break;
 	}
-	printf("----map value----%lld---%x\n", value.rx_packets, value.saddr);
 
 	/* Assignment#1: Add byte counters */
 	rec->total.rx_packets = value.rx_packets;
