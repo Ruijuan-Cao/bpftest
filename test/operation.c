@@ -535,7 +535,7 @@ void dump_stats(){
 
 void print_stats_map_info(){
 	//print stats map info
-	if (!stats_rec)
+	if (stats_rec != NULL)
 		printf("stats_map----%lld----%x\n", stats_rec->rx_packets, stats_rec->saddr);
 	else
 		printf("stats_rec is NULL------\n");
