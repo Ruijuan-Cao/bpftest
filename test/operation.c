@@ -49,10 +49,11 @@ struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
 	//if flag indicate hardware offload, supply ifindex;
 	if (cfg->xdp_flags & XDP_FLAGS_HW_MODE)
 		offload_ifindex = cfg->ifindex;
-
+/*
 	//load the BPF-ELF object file and get back libbpf bpf_object
 	if (cfg->reuse_maps)
-		bpf_obj = load_bpf_object_file_reuse_maps(cfg->filename, offload_ifindex, cfg->pin_dir);
+		printf("reuse_maps\n");
+		//bpf_obj = load_bpf_object_file_reuse_maps(cfg->filename, offload_ifindex, cfg->pin_dir);
 	else
 		bpf_obj = load_bpf_objcet_file(cfg->filename, offload_ifindex);
 	if (!bpf_obj){
@@ -87,6 +88,7 @@ struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
 	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
 	if (err)
 		exit(err);
+*/
 
 	return bpf_obj;
 }
@@ -119,6 +121,7 @@ void load_xdp_program(char **argv, struct bpf_object **bpf_obj){
 	 * process exit.
 	 */
 	struct bpf_program *bpf_prog;
+	printf("----progsec = %s\n", opt_progsec);
 	if (!opt_progsec)
 		// find a matching bpf prog by section name
 		bpf_prog = bpf_object__find_program_by_title(*bpf_obj, opt_progsec);
@@ -141,6 +144,7 @@ void load_xdp_program(char **argv, struct bpf_object **bpf_obj){
 	 * is our select file-descriptor handle. Next step is attaching this FD
 	 * to a kernel hook point, in this case XDP net_device link-level hook.
 	 */
+	printf("opt_ifindex = %d\n", opt_ifindex);
 	if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0) {
 		fprintf(stderr, "ERROR: link set xdp fd failed\n");
 		exit(EXIT_FAILURE);
