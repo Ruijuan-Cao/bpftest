@@ -8,6 +8,11 @@ static const char *__doc__ = "XDP loader and stats program\n"
 #include <errno.h>
 #include <getopt.h>
 
+
+#include <stddef.h>
+#include <stdbool.h>
+
+
 #include <locale.h>
 #include <unistd.h>
 #include <time.h>
@@ -23,7 +28,7 @@ static const char *__doc__ = "XDP loader and stats program\n"
 //#include "common_kern_user.h"
 //#include "bpf_util.h" /* bpf_num_possible_cpus */
 
-#include "common_defines.h"
+#include "../common/common_defines.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX	4096
