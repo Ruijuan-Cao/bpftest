@@ -39,6 +39,7 @@ struct datarec *stats_rec;
 
 
 //load normal bpf and xdp attach to kernel
+/*
 struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
 	struct bpf_program *bpf_prog;
 	struct bpf_object *bpf_obj;
@@ -49,7 +50,7 @@ struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
 	//if flag indicate hardware offload, supply ifindex;
 	if (cfg->xdp_flags & XDP_FLAGS_HW_MODE)
 		offload_ifindex = cfg->ifindex;
-/*
+
 	//load the BPF-ELF object file and get back libbpf bpf_object
 	if (cfg->reuse_maps)
 		printf("reuse_maps\n");
@@ -88,10 +89,10 @@ struct bpf_object *load_bpf_and_xdp_attach(struct xdp_config *cfg){
 	err = xdp_link_attach(cfg->ifindex, cfg->xdp_flags, prog_fd);
 	if (err)
 		exit(err);
-*/
 
 	return bpf_obj;
 }
+*/
 
 void load_xdp_program(char **argv, struct bpf_object **bpf_obj){
 	printf("----load xdp program----\n");
