@@ -28,6 +28,7 @@ static void *poller(void *arg)
 	while (1){
 		sleep(opt_interval);
 		dump_stats();
+		print_stats_map_info();
 
 	}
 	return NULL;
@@ -408,10 +409,11 @@ int main(int argc, char **argv)
 	if (ret)
 		exit_with_error(ret);
 
+/*
 	int ret2 = pthread_create(&pt, NULL, poller_stats, NULL);
 	if (ret2)
 		exit_with_error(ret2);
-
+*/
 	pre_time = get_nsecs();
 
 	if (opt_bench == BENCH_RXDROP)
