@@ -13,6 +13,26 @@
 
 #include "common_defs.h"
 
+//define the max action mode of bpf map
+#ifndef XDP_ACTION_MAX
+#define XDP_ACTION_MAX XDP_REDIRECT + 1
+#endif
+
+/* Allow users of header file to redefine VLAN max depth */
+#ifndef VLAN_MAX_DEPTH
+#define VLAN_MAX_DEPTH 4
+#endif
+
+#define SEC(NAME) __attribute__((section(NAME), used))
+
+#define htons(x) ((__be16)___constant_swab16((x)))
+#define htonl(x) ((__be32)___constant_swab32((x)))
+
+//fetch and add value to ptr
+#ifndef lock_xadd
+#define lock_xadd(ptr, val) ((void) __sync_fetch_and_add(ptr, val))
+#endif
+
 struct bpf_map_def SEC("maps") xsks_map = {
 	.type = BPF_MAP_TYPE_XSKMAP,
 	.key_size = sizeof(int),
