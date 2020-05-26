@@ -371,7 +371,7 @@ int main(int argc, char **argv)
 	
 	printf("-----%d----\n", opt_xsks_num);
 	//if(opt_xsks_num > 1){
-		load_bpf_program(argv, &bpf_obj);
+		load_xdp_program(argv, &bpf_obj);
 		printf("after load_bpf_program\n");
 	//}	
 
