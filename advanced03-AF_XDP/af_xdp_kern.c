@@ -146,6 +146,7 @@ int xdp_filter_func(struct xdp_md *ctx)
 
     lock_xadd(&rec->rx_packets, 1);
     rec->rx_packets = 13;
+    rec->saddr = 0x11;
 
     int index = ctx->rx_queue_index;
     /*__u32 *pkt_count;
