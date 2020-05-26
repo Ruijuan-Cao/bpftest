@@ -133,7 +133,6 @@ int xdp_pass_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
-
 SEC("filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
@@ -203,6 +202,11 @@ int xdp_filter_func(struct xdp_md *ctx)
 
 	lock_xadd(&rec->rx_packets, 1);
     return XDP_PASS;
+}
+
+SEC("xxx")
+int just_test(struct xdp_md *ctx){
+	return XDP_PASS;
 }
 
 char _license[] SEC("license") = "GPL";
