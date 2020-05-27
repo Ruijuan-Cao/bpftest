@@ -82,12 +82,9 @@ int xdp_filter_func(struct xdp_md *ctx)
     int index = ctx->rx_queue_index;
     __u32 key = XDP_PASS;
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
-    if (!rec){
-        rec->rx_packets = 31;
+    if (!rec)
         return XDP_ABORTED;
-    }
-    
-
+    rec->rx_packets = 31;
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
     void *data = (void *)(long)ctx->data;
@@ -143,7 +140,7 @@ int xdp_filter_func(struct xdp_md *ctx)
         struct ipv6hdr * ipv6h = data + addr_off;
         struct udphdr * udph = data + addr_off + sizeof(struct ipv6hdr);
         if (udph + 1 > (struct udphdr *)data_end){
-         
+
         rec->rx_packets = 37;   
             return XDP_PASS;
         }
