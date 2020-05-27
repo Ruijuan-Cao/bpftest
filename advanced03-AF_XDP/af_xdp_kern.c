@@ -93,7 +93,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     //check size
     __u64 addr_off = sizeof(*eth);
     if (data + addr_off > data_end){
-        lock_xadd(&rec->rx_packets, 1);
+        //lock_xadd(&rec->rx_packets, 1);
         rec->rx_packets = 32;
         return XDP_PASS;
     }
@@ -106,9 +106,8 @@ int xdp_filter_func(struct xdp_md *ctx)
             struct vlan_hdr *vhdr = data + addr_off;
             addr_off += sizeof(struct vlan_hdr);
             if (data + addr_off > data_end){
-                lock_xadd(&rec->rx_packets, 1);
-        rec->rx_packets = 33;
-
+                //lock_xadd(&rec->rx_packets, 1);
+                rec->rx_packets = 33;
                 return XDP_PASS;
             }
             h_proto = vhdr->h_vlan_encapsulated_proto;
@@ -122,7 +121,8 @@ int xdp_filter_func(struct xdp_md *ctx)
         struct iphdr *iph = data + addr_off;
         struct udphdr *udph = data + addr_off + sizeof(struct iphdr);
         if (udph + 1 > (struct udphdr *)data_end){
-            lock_xadd(&rec->rx_packets, 1);
+            //lock_xadd(&rec->rx_packets, 1);
+            rec->rx_packets = 41;
             return XDP_PASS;
         }
         rec->rx_packets = 35;
@@ -132,16 +132,17 @@ int xdp_filter_func(struct xdp_md *ctx)
             && (htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300
             && udph->dest == htons(12345) ){
                 rec->saddr = htonl(iph->saddr);
+                        
+                rec->rx_packets = 36;            
                 return XDP_DROP;
         }
-        rec->rx_packets = 36;
     }
     else if (h_proto == htons(ETH_P_IPV6)){
         struct ipv6hdr * ipv6h = data + addr_off;
         struct udphdr * udph = data + addr_off + sizeof(struct ipv6hdr);
         if (udph + 1 > (struct udphdr *)data_end){
 
-        rec->rx_packets = 37;   
+            rec->rx_packets = 37;   
             return XDP_PASS;
         }
         if (ipv6h->nexthdr == IPPROTO_UDP 
@@ -149,12 +150,12 @@ int xdp_filter_func(struct xdp_md *ctx)
             && ipv6h->daddr.s6_addr[1] == 0x00
             && udph->dest == htons(12345)){
             //rec->daddr = htonl(ipv6h->daddr);
-        rec->rx_packets = 38;
+            rec->rx_packets = 38;
             return XDP_DROP;    
         }
     }
 
-    lock_xadd(&rec->rx_packets, 1);
+    //lock_xadd(&rec->rx_packets, 1);
     rec->rx_packets = 13;
     rec->saddr = 0x11111111;
 
