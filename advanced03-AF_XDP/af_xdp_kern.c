@@ -84,6 +84,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
     if (!rec)
         return XDP_ABORTED;
+    rec->saddr = 0x00000000；
 
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
