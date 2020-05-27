@@ -85,7 +85,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     if (!rec)
         return XDP_ABORTED;
     if (rec->saddr > 0)
-        rec->saddr = 0x0;
+        rec->saddr = 0x00000000;
 
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
