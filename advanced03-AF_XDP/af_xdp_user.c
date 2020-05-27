@@ -480,10 +480,10 @@ static void map_stats_print(struct stats_record *stats_rec,
 
 	/* Assignment#2: Print other XDP actions stats  */
 	{
-		/*char *fmt = "%-12s %'11lld pkts (%'10.0f pps)"
+		char *fmt = "%-12s %'11lld pkts (%'10.0f pps)"
 			//" %'11lld Kbytes (%'6.0f Mbits/s)"
 			" period:%f\n";
-			*/
+		
 		const char *action = action2str(XDP_PASS);
 
 		period = 1.00; 	//calc_period(stats_rec, stats_prev);
@@ -494,7 +494,7 @@ static void map_stats_print(struct stats_record *stats_rec,
 		pps     = packets / period;
 		if (stats_rec->total.rx_packets > 0)
 printf("---%lld----%x-----\n",stats_rec->total.rx_packets, stats_rec->total.saddr);
-		printf(fmt, action, stats_rec->total.rx_packets, pps, period);
+		//printf(fmt, action, stats_rec->total.rx_packets, pps, period);
 	}
 }
 
