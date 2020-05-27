@@ -692,6 +692,7 @@ int main(int argc, char **argv)
 		//map stats thread
 		if (stats_map_fd >= 0)
 		{
+			printf("-----start-fd=%d\n",stats_map_fd );
 			pthread_t stats_map_poll_thread;
 			int ret2 = pthread_create(&stats_map_poll_thread, NULL, stats_map_poll,
 					     &stats_map_fd);
@@ -705,7 +706,7 @@ int main(int argc, char **argv)
 
 	/* Receive and count packets than drop them */
 	rx_and_process(&cfg, xsk_socket);
-	stats_map_poll(&stats_map_fd);
+	//stats_map_poll(&stats_map_fd);
 
 	/* Cleanup */
 	xsk_socket__delete(xsk_socket->xsk);
