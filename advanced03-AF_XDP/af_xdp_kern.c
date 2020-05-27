@@ -117,12 +117,13 @@ int xdp_filter_func(struct xdp_md *ctx)
     //ipv4
     if (h_proto == htons(ETH_P_IP)){
         struct iphdr *iph = data + addr_off;
-        rec->saddr = htonl(iph->saddr);
         struct udphdr *udph = data + addr_off + sizeof(struct iphdr);
         if (udph + 1 > (struct udphdr *)data_end){
             lock_xadd(&rec->rx_packets, 1);
             return XDP_PASS;
         }
+        rec->saddr = htonl(iph->saddr);
+
         //UDP
         if (iph->protocol == IPPROTO_UDP 
             //source address
