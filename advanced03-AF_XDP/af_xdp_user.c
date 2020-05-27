@@ -528,7 +528,6 @@ static void stats_collect(int map_fd, __u32 map_type, struct stats_record *rec)
 static void stats_map_poll(void *arg)
 {
 	int map_fd = *(int *)arg;
-	printf("----map-fd=%d\n", map_fd);
 
 	struct stats_record prev, record = { 0 };
 
@@ -692,7 +691,6 @@ int main(int argc, char **argv)
 		//map stats thread
 		if (stats_map_fd >= 0)
 		{
-			printf("-----start-fd=%d\n",stats_map_fd );
 			pthread_t stats_map_poll_thread;
 			int ret2 = pthread_create(&stats_map_poll_thread, NULL, stats_map_poll,
 					     &stats_map_fd);
