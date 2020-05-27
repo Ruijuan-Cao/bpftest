@@ -527,7 +527,7 @@ static void stats_collect(int map_fd, __u32 map_type, struct stats_record *rec)
 
 static void stats_map_poll(void *arg)
 {
-	int map_fd = (int)*arg;
+	int map_fd = *(int *)arg;
 	printf("----map-fd=%d\n", map_fd);
 
 	struct stats_record prev, record = { 0 };
