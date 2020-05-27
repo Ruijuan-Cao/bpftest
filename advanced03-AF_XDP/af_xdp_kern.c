@@ -78,12 +78,14 @@ struct vlan_hdr {
 SEC("xdp_filter")
 int xdp_filter_func(struct xdp_md *ctx)
 {
-    //get map pointer]
-
+    //get map pointer
+    int index = ctx->rx_queue_index;
     __u32 key = XDP_PASS;
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
-    if (!rec)
+    if (!rec){
+        rec->rx_packets = 31;
         return XDP_ABORTED;
+    }
     
 
     //get data header
@@ -95,6 +97,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     __u64 addr_off = sizeof(*eth);
     if (data + addr_off > data_end){
         lock_xadd(&rec->rx_packets, 1);
+        rec->rx_packets = 32;
         return XDP_PASS;
     }
 
@@ -107,10 +110,14 @@ int xdp_filter_func(struct xdp_md *ctx)
             addr_off += sizeof(struct vlan_hdr);
             if (data + addr_off > data_end){
                 lock_xadd(&rec->rx_packets, 1);
+        rec->rx_packets = 33;
+
                 return XDP_PASS;
             }
             h_proto = vhdr->h_vlan_encapsulated_proto;
         }
+        rec->rx_packets = 34;
+
     }
 
     //ipv4
@@ -121,6 +128,7 @@ int xdp_filter_func(struct xdp_md *ctx)
             lock_xadd(&rec->rx_packets, 1);
             return XDP_PASS;
         }
+        rec->rx_packets = 35;
         //UDP
         if (iph->protocol == IPPROTO_UDP 
             //source address
@@ -129,17 +137,22 @@ int xdp_filter_func(struct xdp_md *ctx)
                 rec->saddr = htonl(iph->saddr);
                 return XDP_DROP;
         }
+        rec->rx_packets = 36;
     }
     else if (h_proto == htons(ETH_P_IPV6)){
         struct ipv6hdr * ipv6h = data + addr_off;
         struct udphdr * udph = data + addr_off + sizeof(struct ipv6hdr);
-        if (udph + 1 > (struct udphdr *)data_end)
+        if (udph + 1 > (struct udphdr *)data_end){
+         
+        rec->rx_packets = 37;   
             return XDP_PASS;
+        }
         if (ipv6h->nexthdr == IPPROTO_UDP 
             && ipv6h->daddr.s6_addr[0] == 0xfd
             && ipv6h->daddr.s6_addr[1] == 0x00
             && udph->dest == htons(12345)){
             //rec->daddr = htonl(ipv6h->daddr);
+        rec->rx_packets = 38;
             return XDP_DROP;    
         }
     }
@@ -148,7 +161,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     rec->rx_packets = 13;
     rec->saddr = 0x11111111;
 
-    int index = ctx->rx_queue_index;
+    //int index = ctx->rx_queue_index;
     /*__u32 *pkt_count;
     pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
     if (pkt_count) {
