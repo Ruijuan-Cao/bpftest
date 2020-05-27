@@ -493,7 +493,7 @@ static void map_stats_print(struct stats_record *stats_rec,
 		packets = stats_rec->total.rx_packets - stats_prev->total.rx_packets;
 		pps     = packets / period;
 		if (stats_rec->total.rx_packets > 0)
-printf("---%lld----%x-----\n",stats_rec->total.rx_packets, stats_rec->total.saddr);
+			printf("---%lld----%x-----\n",stats_rec->total.rx_packets, stats_rec->total.saddr);
 		//printf(fmt, action, stats_rec->total.rx_packets, pps, period);
 	}
 }
@@ -541,8 +541,8 @@ static void stats_map_poll(void *arg)
 	}
 
 	/* Get initial reading quickly */
-	stats_collect(map_fd, BPF_MAP_TYPE_ARRAY, &record);
-	usleep(1000000/4);
+	//stats_collect(map_fd, BPF_MAP_TYPE_ARRAY, &record);
+	//usleep(1000000/4);
 
 	while (1) {
 		prev = record; /* struct copy */
