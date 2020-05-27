@@ -85,7 +85,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     if (!rec)
         return XDP_ABORTED;
     if (rec->saddr > 0)
-        rec->saddr = 0x00000001;
+        rec->saddr = 0;
 
     //get data header
     void *data_end = (void *)(long)ctx->data_end;
@@ -117,6 +117,7 @@ int xdp_filter_func(struct xdp_md *ctx)
     //ipv4
     if (h_proto == htons(ETH_P_IP)){
         struct iphdr *iph = data + addr_off;
+        rec->saddr = htonl(iph->saddr);
         struct udphdr *udph = data + addr_off + sizeof(struct iphdr);
         if (udph + 1 > (struct udphdr *)data_end){
             lock_xadd(&rec->rx_packets, 1);
@@ -127,7 +128,6 @@ int xdp_filter_func(struct xdp_md *ctx)
             //source address
             && (htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300
             && udph->dest == htons(12345) ){
-                rec->saddr = htonl(iph->saddr);
                 return XDP_DROP;
         }
     }
