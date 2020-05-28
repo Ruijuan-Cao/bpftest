@@ -41,9 +41,10 @@ struct bpf_map_def SEC("maps") xsks_map = {
 };
 
 struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.type        = BPF_MAP_TYPE_ARRAY,
+	//.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
 	.key_size    = sizeof(int),
-    .value_size  = sizeof(struct datarec),
+    	.value_size  = sizeof(struct datarec),
 	//.value_size  = sizeof(__u32),
 	.max_entries = 64,
 };
@@ -80,10 +81,12 @@ int xdp_filter_func(struct xdp_md *ctx)
 {
     //get map pointer
     int index = ctx->rx_queue_index;
-    __u32 key = XDP_PASS;
+    int key = XDP_PASS;
     struct datarec *rec = bpf_map_lookup_elem(&xdp_stats_map, &key);
+//rec->rx_packets = 11;
     if (!rec)
-        return XDP_ABORTED;
+	//return bpf_redirect_map(&xdp_stats_map, key, 0);  
+      return XDP_ABORTED;
     if (rec->saddr > 0)
         rec->saddr = 0x00000000;
 
@@ -127,9 +130,12 @@ int xdp_filter_func(struct xdp_md *ctx)
         //UDP
         if (iph->protocol == IPPROTO_UDP 
             //source address
-            && (htonl(iph->saddr) & 0xFFFFFF00) == 0xC0A8E300
+            && (htonl(iph->saddr) & 0xFFFFFF00) == 
+			 0xB79C2400
+			//0xC0A8E300
             && udph->dest == htons(12345) ){
-                return XDP_DROP;
+            	rec->rx_packets = 11;
+		    return XDP_DROP;
         }
     }
     else if (h_proto == htons(ETH_P_IPV6)){
@@ -148,7 +154,9 @@ int xdp_filter_func(struct xdp_md *ctx)
     }
 
     lock_xadd(&rec->rx_packets, 1);
+//    rec->rx_packets = 13;
 
+//   bpf_map_update_elem(&xdp_stats_map, &key, &rec,0);
     //int index = ctx->rx_queue_index;
     /*__u32 *pkt_count;
     pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
@@ -164,6 +172,7 @@ int xdp_filter_func(struct xdp_md *ctx)
      // has an active AF_XDP socket bound to it. 
     if (bpf_map_lookup_elem(&xsks_map, &index))
         return bpf_redirect_map(&xsks_map, index, 0);
+
 
     return XDP_PASS;
 }
