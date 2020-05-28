@@ -27,6 +27,7 @@ static inline int open_raw_sock(const char *name)
 	memset(&sll, 0, sizeof(sll));
 	sll.sll_family = AF_PACKET;
 	sll.sll_ifindex = if_nametoindex(name);
+	//htons: host to network(little-endian to big-endian)
 	sll.sll_protocol = htons(ETH_P_ALL);
 	if (bind(sock, (struct sockaddr *)&sll, sizeof(sll)) < 0) {
 		printf("bind to %s: %s\n", name, strerror(errno));
