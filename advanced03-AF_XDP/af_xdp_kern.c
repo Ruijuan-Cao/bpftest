@@ -44,7 +44,7 @@ struct bpf_map_def SEC("maps") xdp_stats_map = {
 	.type        = BPF_MAP_TYPE_ARRAY,
 	//.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
 	.key_size    = sizeof(int),
-    .value_size  = sizeof(struct datarec),
+    	.value_size  = sizeof(struct datarec),
 	//.value_size  = sizeof(__u32),
 	.max_entries = 64,
 };
@@ -130,7 +130,9 @@ int xdp_filter_func(struct xdp_md *ctx)
         //UDP
         if (iph->protocol == IPPROTO_UDP 
             //source address
-            && (htonl(iph->saddr) & 0xFFFFFF00) == 0xb79c2400//0xC0A8E300
+            && (htonl(iph->saddr) & 0xFFFFFF00) == 
+			 0xB79C2400
+			//0xC0A8E300
             && udph->dest == htons(12345) ){
             	rec->rx_packets = 11;
 		    return XDP_DROP;
